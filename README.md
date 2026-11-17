@@ -153,7 +153,6 @@ ap_pass=
 hostname=pianolog
 tz=CET-1CEST,M3.5.0,M10.5.0/3
 gap_s=60
-clean_card=1
 ```
 
 The clock comes from NTP, or from the browser when there is no internet.
@@ -187,22 +186,6 @@ card   /rec/unsynced/b0042-001_0090s_0200n.mid          recorded before the cloc
   else is left, and never the take being recorded. With a card in, nothing is deleted.
   Insert a card later and everything in flash is moved over.
 
-## The card belongs to the recorder
-
-At every start-up, with a card inserted, the recorder deletes everything on the card that it
-did not create. A card inserted while the recorder is already running is cleaned at the next
-start-up.
-
-| Kept | Deleted |
-|------|---------|
-| `/pianolog.txt` | every other file or folder in the top level, hidden ones included (`.Trashes`, `.Spotlight-V100`, `System Volume Information`, ...) |
-| `.mid` files in any folder directly under `/rec` | files lying directly in `/rec`; non-`.mid` files and sub-folders inside a day folder; macOS `._*` files even when they end in `.mid`; folders under `/rec` left empty |
-
-Recordings are never judged by their exact name: a `.mid` file inside a folder under `/rec`
-stays even if you renamed it or its folder, so a bug in a name check cannot delete music.
-Don't keep anything else on this card. To switch the clean-up off, set `clean_card=0` in
-`pianolog.txt`.
-
 ## HTTP API
 
 | Method | Path                                   | Result                               |
@@ -234,7 +217,6 @@ main/midi_parse.*  MIDI byte-stream and USB-MIDI packet parser   (portable, host
 main/smf.*         MIDI file encoder and crash-repair scanner    (portable, host-tested)
 main/recorder.c    take detection, safe writing, repair
 main/archive.c     flash -> card mover, ring buffer without a card
-main/cleanup.c     removes foreign files from the card at boot
 main/storage.c     on-board flash (LittleFS) and microSD
 main/ota.c         updates over Wi-Fi, rollback guard
 main/net.c         Wi-Fi station / fallback access point, NTP, mDNS
@@ -256,8 +238,6 @@ Done on a PC:
 * `test/host_test.c`: encoder, parser (running status, interleaved real-time bytes, SysEx,
   USB packets) and the repair scanner against every possible truncation point; the output
   files were read back with the independent `mido` library.
-* `test/cleanup_test.c`: the boot-time card clean-up on a deliberately messy card (macOS and
-  Windows litter, nested folders, renamed recordings, 70+ junk files).
 * `test/archive_test.c`: moving takes to a card, recovery from a cut before and after the
   rename, a name clash, and the ring buffer (oldest first, starred last, live take kept,
   disabled with a card).

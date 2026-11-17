@@ -15,7 +15,6 @@ pl_config_t g_cfg = {
     .hostname = "pianolog",
     .tz = "CET-1CEST,M3.5.0,M10.5.0/3",     // Europe/Warsaw
     .gap_s = 60,
-    .clean_card = true,
 };
 
 static const char TEMPLATE[] =
@@ -37,11 +36,7 @@ static const char TEMPLATE[] =
     "tz=CET-1CEST,M3.5.0,M10.5.0/3\n"
     "\n"
     "# Seconds of silence that end a take and start a new file.\n"
-    "gap_s=60\n"
-    "\n"
-    "# At start-up, delete every file and folder on this card that pianolog did not create.\n"
-    "# Recordings (.mid files in rec/) are always kept. 0 = never delete anything.\n"
-    "clean_card=1\n";
+    "gap_s=60\n";
 
 static char *trim(char *s)
 {
@@ -86,7 +81,6 @@ void config_load(void)
             int g = atoi(v);
             if (g >= 5 && g <= 3600) g_cfg.gap_s = g;
         }
-        else if (!strcmp(k, "clean_card")) g_cfg.clean_card = atoi(v) != 0;
     }
     fclose(f);
     ESP_LOGI(TAG, "config: ssid='%s' hostname='%s' gap=%ds", g_cfg.wifi_ssid, g_cfg.hostname, g_cfg.gap_s);

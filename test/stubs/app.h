@@ -21,14 +21,10 @@ typedef struct {
     char hostname[32];      // http://<hostname>.local
     char tz[48];            // POSIX TZ string
     int  gap_s;             // silence that closes a take
-    bool clean_card;        // delete foreign files from the card at boot (cleanup.c)
 } pl_config_t;
 
 extern pl_config_t g_cfg;
 void config_load(void);     // reads PL_CONFIG_FILE, writes a template if it is missing
-
-// ---- cleanup.c ------------------------------------------------------------------------
-void card_cleanup(const char *root);    // delete what pianolog did not create (see cleanup.c)
 
 // ---- storage.c ------------------------------------------------------------------------
 esp_err_t flash_mount(void);                // LittleFS partition "storage" at PL_FLASH

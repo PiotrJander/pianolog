@@ -4,7 +4,6 @@ managed_components/
 sdkconfig
 sdkconfig.old
 test/stubs/archive_copy.c
-test/stubs/cleanup_copy.c
 test/*.mid
 test/t/
 *.o

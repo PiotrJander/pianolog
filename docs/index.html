@@ -205,7 +205,6 @@ wifi_pass=YourPassword</code></pre>
 <li>Takes are filed by day: <code>rec/2026-11-13/20-31-05_0185s_0412n.mid</code> is a take started at 20:31:05, 185 seconds long, 412 notes. The card can also be read directly in a computer.</li>
 <li>Each take is recorded into the board's own memory, which is built to survive power cuts. Once the take ends it is copied to the card, checked, and only then removed from the board. Takes not yet copied are marked <em>internal</em> on the page.</li>
 <li>Unplugging the power at any moment is fine: at most the last two seconds of a take are lost, and an interrupted take is completed at the next start.</li>
-<li>The card belongs to the recorder: at every start-up it deletes whatever it did not create there, keeping its settings file and every <code>.mid</code> recording in <code>rec/</code>. Don't store anything else on it, or set <code>clean_card=0</code> in <code>pianolog.txt</code>.</li>
 <li>Without a card, when the board's memory is nearly full, the oldest takes are deleted to make room. Starred takes go only when nothing else is left.</li>
 <li>Privacy works the way it does on any recorder that never stops: anyone who plays is recorded, and anyone on your Wi-Fi can open the page. Pull the USB-C plug to stop it.</li>
 </ul>
