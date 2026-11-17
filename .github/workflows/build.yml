@@ -23,6 +23,12 @@ jobs:
           cp ../main/archive.c stubs/archive_copy.c
           gcc -w -fsanitize=address,undefined -Istubs archive_test.c -o archive_test
           ./archive_test
+      - name: SD card clean-up at boot
+        working-directory: test
+        run: |
+          cp ../main/cleanup.c stubs/cleanup_copy.c
+          gcc -w -fsanitize=address,undefined -Istubs cleanup_test.c -o cleanup_test
+          ./cleanup_test
 
   firmware:
     name: Firmware (${{ matrix.variant }})

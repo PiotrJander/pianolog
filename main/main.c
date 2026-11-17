@@ -53,6 +53,7 @@ void app_main(void)
 
     if (storage_mount() == ESP_OK) {
         config_load();
+        if (g_cfg.clean_card) card_cleanup(PL_MOUNT);
         recorder_repair_dir(PL_CARD_REC);       // takes written by firmware 0.1 directly to the card
     }
     setenv("TZ", g_cfg.tz, 1);
