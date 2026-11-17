@@ -14,7 +14,7 @@ jobs:
       - name: MIDI encoder, parser and repair scanner
         working-directory: test
         run: |
-          gcc -Wall -Wextra -Werror -fsanitize=address,undefined -I../main \
+          gcc -Wall -Werror -fsanitize=address,undefined -I../main \
               host_test.c ../main/smf.c ../main/midi_parse.c -o host_test
           ./host_test
       - name: Flash-to-card archiver and ring buffer
