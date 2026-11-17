@@ -1,0 +1,9 @@
+dependencies:
+  idf: '>=5.5.3'
+  espressif/esp_wifi_remote:
+    version: '>=0.10,<2.0'
+  espressif/esp_hosted:
+    version: ~2
+  espressif/mdns:
+    version: ^1.4
+  joltwallet/littlefs: ^1.14

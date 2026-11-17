@@ -1,0 +1,33 @@
+menu "pianolog"
+
+    config PL_DIN_RX_GPIO
+        int "GPIO for 5-pin DIN MIDI IN (optocoupler output), -1 to disable"
+        default 20
+        help
+            UART RX pin fed by the H11L1 optocoupler. Any free header GPIO works.
+
+    config PL_SD_LDO_CHAN
+        int "On-chip LDO channel powering the SD card IO (0 = none)"
+        default 4
+
+    config PL_SD_EN_GPIO
+        int "GPIO that enables SD card power when driven low (-1 = none)"
+        default 45
+
+    config PL_WIFI_SSID
+        string "Built-in Wi-Fi network name (YOUR_WIFI_SSID = none)"
+        default "YOUR_WIFI_SSID"
+
+    config PL_WIFI_PASS
+        string "Built-in Wi-Fi password"
+        default "YOUR_WIFI_PASSWORD"
+
+    config PL_AP_PASS
+        string "Password of the recorder's own fallback network (8+ characters)"
+        default "pianolog-setup"
+
+    config PL_OTA_TOKEN
+        string "Secret required by POST /api/update (empty = updates disabled)"
+        default "CHANGE-ME-ota-token"
+
+endmenu

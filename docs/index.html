@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pianolog Build Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a printed service manual. One narrow column, numbered steps in the margin,
+   line drawings in ink, one signal colour for the things you must not get wrong. */
+:root{
+  --paper:#f4f5f2; --sheet:#ffffff; --ink:#17202a; --dim:#5b6672; --rule:#cfd4d6;
+  --signal:#0c6f78; --caution:#b4530a; --tint:#e9f1f1;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12171b; --sheet:#182026; --ink:#e6ebee; --dim:#98a4ae; --rule:#2f3a43;
+    --signal:#5fc3cb; --caution:#f0a04b; --tint:#1e2c31; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12171b; --sheet:#182026; --ink:#e6ebee; --dim:#98a4ae; --rule:#2f3a43;
+  --signal:#5fc3cb; --caution:#f0a04b; --tint:#1e2c31; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--body)}
+.sheet{max-width:760px;margin:0 auto;background:var(--sheet);padding:28px 20px 56px;border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+header.cover{border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:8px}
+.docno{font:500 12px/1 var(--mono);color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+h1{font:700 44px/1.02 var(--display);margin:10px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+.lede{font-size:18px;color:var(--dim);margin:0;max-width:60ch}
+h2{font:700 26px/1.1 var(--display);margin:44px 0 12px;padding-top:14px;border-top:1px solid var(--rule);text-wrap:balance}
+h3{font:600 17px/1.3 var(--body);margin:22px 0 6px}
+p{margin:0 0 12px;max-width:66ch}
+a{color:var(--signal);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+code,kbd{font:500 .88em var(--mono);background:var(--tint);padding:1px 5px;border-radius:3px}
+pre{font:400 13.5px/1.5 var(--mono);background:var(--tint);border-left:3px solid var(--signal);padding:12px 14px;margin:0 0 14px;overflow-x:auto;border-radius:0 4px 4px 0}
+pre code{background:none;padding:0;font:inherit}
+.steps{list-style:none;margin:0;padding:0;counter-reset:step;display:flex;flex-direction:column;gap:14px}
+.steps>li{counter-increment:step;display:grid;grid-template-columns:40px 1fr;gap:12px}
+.steps>li::before{content:counter(step);font:700 26px/1 var(--display);color:var(--signal);border-top:2px solid var(--signal);padding-top:6px}
+.steps>li>div{min-width:0}
+.steps>li>div>:last-child{margin-bottom:0}
+.note,.caution{border:1px solid var(--rule);border-left:4px solid var(--signal);padding:10px 14px;margin:0 0 14px;background:var(--tint);border-radius:0 4px 4px 0}
+.caution{border-left-color:var(--caution)}
+.note b:first-child,.caution b:first-child{font:600 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:6px;color:var(--signal)}
+.caution b:first-child{color:var(--caution)}
+.note p:last-child,.caution p:last-child{margin-bottom:0}
+.tablewrap{overflow-x:auto;margin:0 0 14px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 12px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--ink)}
+td.n{font-family:var(--mono);color:var(--dim);white-space:nowrap}
+td.p{white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.sub td{background:var(--tint);font:600 12px/1.2 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+figure{margin:18px 0 20px}
+.fig{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;padding:10px;color:var(--ink)}
+.fig svg{display:block;width:100%;min-width:560px;height:auto}
+figcaption{font-size:13.5px;color:var(--dim);margin-top:8px;max-width:66ch}
+figcaption b{font:600 12px/1 var(--mono);letter-spacing:.05em;color:var(--ink);margin-right:6px}
+svg text{font-family:var(--body);fill:currentColor}
+svg .mono{font-family:var(--mono)}
+svg .dim{fill:var(--dim)}
+svg .sig{stroke:var(--signal)} svg .sigfill{fill:var(--signal)} svg text.sigtext{fill:var(--signal)}
+ul.plain{margin:0 0 12px;padding-left:20px;max-width:66ch}
+ul.plain li{margin-bottom:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two>div{min-width:0;border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+.two h3{margin-top:0}
+footer{margin-top:44px;padding-top:14px;border-top:3px solid var(--ink);font-size:13.5px;color:var(--dim)}
+@media (max-width:560px){h1{font-size:34px}.two{grid-template-columns:1fr}.steps>li{grid-template-columns:30px 1fr}}
+@media print{
+  :root{--paper:#fff;--sheet:#fff;--ink:#000;--dim:#444;--rule:#bbb;--signal:#0c6f78;--caution:#b4530a;--tint:#f2f5f5}
+  .sheet{border:0;max-width:none;padding:0}
+  figure,.note,.caution,pre,tr,.steps>li{break-inside:avoid}
+  h2{break-after:avoid}
+  a{color:inherit}
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header class="cover">
+  <div class="docno">Build manual · firmware 0.2.0 · rev C · 17 Nov 2026</div>
+  <h1>pianolog: an always-on MIDI recorder</h1>
+  <p class="lede">A small box that stays plugged into a digital piano, saves every take as a MIDI file in its own memory and on a memory card, and serves a web page where you browse and play them from your phone. After the first setup it updates over Wi-Fi.</p>
+</header>
+
+<div class="caution"><b>Read first</b>
+<p>The firmware compiles and its file-handling logic passes tests on a PC. Nobody has run it on a real board yet: you are the first. Section 8 lists exactly what is and is not verified, and section 7 covers the likely first-boot problems.</p></div>
+
+<h2>1. What you are building</h2>
+<figure>
+<div class="fig">
+<svg viewBox="0 0 780 380" role="img" aria-label="The piano sends MIDI over a USB cable to the board's Type-A port. The board stores takes on a microSD card, is powered over USB-C, and serves a web page to a phone over Wi-Fi.">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="1.6">
+    <rect x="20" y="120" width="160" height="100" rx="4"/>
+    <rect x="320" y="70" width="200" height="200" rx="4" stroke-width="2.4"/>
+    <rect x="306" y="150" width="28" height="40"/>
+    <rect x="380" y="20" width="80" height="28" rx="3"/>
+    <rect x="400" y="258" width="40" height="24"/>
+    <rect x="360" y="322" width="120" height="40" rx="4"/>
+    <rect x="640" y="110" width="120" height="120" rx="12"/>
+    <line x1="420" y1="48" x2="420" y2="70"/>
+    <line x1="180" y1="170" x2="304" y2="170" marker-end="url(#a1)"/>
+    <line x1="420" y1="322" x2="420" y2="284" marker-end="url(#a1)"/>
+    <line x1="522" y1="170" x2="638" y2="170" stroke-dasharray="5 4" marker-end="url(#a1)" marker-start="url(#a1)"/>
+  </g>
+  <g font-size="13" text-anchor="middle">
+    <text x="100" y="164" font-weight="600">Digital piano</text>
+    <text x="100" y="184" class="dim" font-size="12">USB TO HOST port</text>
+    <text x="243" y="160">instrument cable</text>
+    <text x="243" y="188" class="dim" font-size="12">MIDI data</text>
+    <text x="420" y="112" font-weight="600" font-size="15">ESP32-P4-NANO</text>
+    <text x="420" y="132" class="dim" font-size="12">records every take</text>
+    <text x="340" y="175" text-anchor="start" font-size="12">Type-A</text>
+    <text x="420" y="39" font-size="12">microSD</text>
+    <text x="420" y="250" font-size="12">USB-C</text>
+    <text x="420" y="347">5 V USB charger</text>
+    <text x="430" y="308" text-anchor="start" class="dim" font-size="12">power</text>
+    <text x="700" y="160" font-weight="600">Phone</text>
+    <text x="700" y="180" class="mono" font-size="11">pianolog.local</text>
+    <text x="580" y="160">Wi-Fi</text>
+    <text x="580" y="188" class="dim" font-size="12">web page</text>
+  </g>
+</svg>
+</div>
+<figcaption><b>FIG. 1</b>Signal and power paths. Nothing is soldered: the instrument cable is whichever row of the parts list matches your instrument.</figcaption>
+</figure>
+
+<p>The board is a Waveshare ESP32-P4-NANO. It was chosen because it already carries everything the job needs: a RISC-V ESP32-P4 with a USB host port wired to a Type-A socket, a microSD slot, and an ESP32-C6 for Wi-Fi. The whole build is the board, a card and two cables.</p>
+
+<h2>2. Parts</h2>
+<div class="tablewrap">
+<table>
+<thead><tr><th>#</th><th>Part</th><th>Exact type</th><th>Approx. price</th></tr></thead>
+<tbody>
+<tr class="sub"><td colspan="4">Always needed</td></tr>
+<tr><td class="n">1</td><td>Controller board</td><td><a href="https://kamami.pl/en/esp32/1197470-esp32-p4-nano-high-performance-development-board-based-on-esp32-p4-chip-with-risc-v-dual-core-and-s-5902186307353.html">Waveshare ESP32-P4-NANO, SKU 29026</a> (basic kit). Wi-Fi antenna is on the board</td><td class="p">85 zł</td></tr>
+<tr><td class="n">2</td><td>Memory card (optional)</td><td>microSD, 8 to 32 GB, formatted FAT32. Any shop; no Kamami listing was found. Without it the board keeps about 50 hours of playing in its own memory and overwrites the oldest takes</td><td class="p">15–30 zł</td></tr>
+<tr><td class="n">3</td><td>Power cable</td><td><a href="https://kamami.pl/en/usb-cables/1178168-usb-type-a-cable-usb-type-c-1m-black.html">USB-A to USB-C cable, 1 m</a>, into any USB-A phone charger (5 V, 1 A or more)</td><td class="p">5 zł</td></tr>
+<tr class="sub"><td colspan="4">Instrument cable: pick the row that matches your instrument</td></tr>
+<tr><td class="n">4a</td><td>Piano with a square USB-B socket (USB TO HOST)</td><td><a href="https://kamami.pl/en/usb-cables/587699-cabel-usb-a-usb-b-20-3m-black-ferrite-lanberg-5901969413502.html">USB-A to USB-B cable, Lanberg, 3 m</a>. The same series exists in 0.5 m</td><td class="p">10–15 zł</td></tr>
+<tr><td class="n">4b</td><td>Piano with a USB-C socket</td><td>A second <a href="https://kamami.pl/en/usb-cables/1178168-usb-type-a-cable-usb-type-c-1m-black.html">USB-A to USB-C cable</a>. It must carry data, as this one does; charge-only cables will not work</td><td class="p">5 zł</td></tr>
+<tr><td class="n">4c</td><td>Instrument with only round 5-pin MIDI sockets</td><td>Class-compliant USB-MIDI interface cable (DIN plugs to USB-A), for example Roland UM-ONE mk2. Sold by music shops, not by Kamami</td><td class="p">60–180 zł</td></tr>
+</tbody>
+</table>
+</div>
+<p>Total with a USB piano: about 115 to 135 zł, less if a card and cables are already in your drawer.</p>
+<div class="note"><b>Where to buy</b>
+<p>Kamami is Waveshare's distributor in Poland, so the board and both plain cables can go in one order. The board's listed price moved between 83 and 88 zł while this manual was written and the cable prices are shown without VAT; stock counts were not readable, so check them at checkout.</p></div>
+
+<h2>3. Prepare the memory card (optional)</h2>
+<p>The recorder works without a card: takes are always recorded into the board's own memory first. A card is the long-term archive, and takes are moved onto it automatically.</p>
+<ol class="steps">
+<li><div><p>Format the card as <strong>FAT32</strong>. Cards up to 32 GB come that way. A 64 GB card arrives as exFAT, which the recorder cannot read, and needs reformatting.</p></div></li>
+<li><div><p>Optionally, create a text file named <code>pianolog.txt</code> in the top folder of the card with your home Wi-Fi:</p>
+<pre><code>wifi_ssid=YourNetworkName
+wifi_pass=YourPassword</code></pre>
+<p>Usually you won't need it: the setup page in section 5 is easier. The network must be 2.4 GHz.</p></div></li>
+<li><div><p>Push the card into the slot on the board until it clicks.</p></div></li>
+</ol>
+
+<h2>4. Load the firmware</h2>
+<p>Do this once, from a computer, through the board's USB-C port. Later versions go over Wi-Fi (section 6). The download contains two ready-made images because ESP32-P4 chips before and after revision 3.0 are not compatible with each other.</p>
+<ol class="steps">
+<li><div><p>Install the flashing tool (needs Python 3):</p>
+<pre><code>pip install esptool</code></pre></div></li>
+<li><div><p>Connect the board's <strong>USB-C</strong> port to the computer and ask the chip for its revision:</p>
+<pre><code>python -m esptool --chip esp32p4 chip-id</code></pre>
+<p>Look for a line containing <code>ESP32-P4 (revision v3.1)</code> or similar. If no serial port is found, install the USB-serial driver linked from <a href="https://docs.waveshare.com/ESP32-P4-NANO">Waveshare's board page</a>. If the tool cannot connect, hold <kbd>BOOT</kbd>, tap <kbd>RESET</kbd>, release <kbd>BOOT</kbd>, and retry.</p></div></li>
+<li><div><p>Flash the image that matches. Revision 3.0 or higher:</p>
+<pre><code>python -m esptool --chip esp32p4 -b 460800 write-flash 0x0 firmware/pianolog-p4-rev3.bin</code></pre>
+<p>Revision below 3.0 (0.x or 1.x):</p>
+<pre><code>python -m esptool --chip esp32p4 -b 460800 write-flash 0x0 firmware/pianolog-p4-rev1.bin</code></pre></div></li>
+<li><div><p>Watch the first boot. Any serial terminal at 115200 baud works; with ESP-IDF installed, <code>idf.py monitor</code> is the most convenient. A healthy start prints <code>sd: flash storage mounted</code>, then <code>net: joined</code> or <code>net: setup network</code>.</p></div></li>
+</ol>
+<div class="caution"><b>Ready-made images use placeholder secrets</b>
+<p>The images in <code>firmware/</code> contain the update token <code>CHANGE-ME-ota-token</code> and the setup-network password <code>pianolog-setup</code>, both printed in this manual. They are fine for a first test. Before the recorder lives on a shared network, build your own with real values (below).</p></div>
+<div class="note"><b>Building it yourself</b>
+<p>Set your own update token, setup-network password and, if you like, a built-in home network in <code>sdkconfig.defaults</code> (the lines are marked "Fill these in"). Then install <a href="https://docs.espressif.com/projects/esp-idf/en/v5.5.3/esp32p4/get-started/index.html">ESP-IDF 5.5.3 or a later 5.5 release</a>, then run <code>idf.py set-target esp32p4</code> and <code>idf.py build flash monitor</code> in the project folder. The README explains the extra option for older chip revisions and the settings menu for pins.</p></div>
+
+<h2>5. Connect and use</h2>
+<ol class="steps">
+<li><div><p>Run the instrument cable from the piano's USB socket (often labelled <strong>USB TO HOST</strong>) to the board's <strong>Type-A</strong> socket. With an interface cable, one of its round plugs goes into the instrument's <strong>MIDI OUT</strong>; the plugs are labelled, and labelling conventions differ between brands, so follow the cable's leaflet. Power the board from the charger through <strong>USB-C</strong>. The order does not matter, and the piano can be switched off: the recorder notices when it comes on.</p></div></li>
+<li><div><p>Play something, then stop for a minute.</p></div></li>
+<li><div><p>The first time, about 30 seconds after power-on, the recorder opens its own Wi-Fi network called <code>pianolog</code>. Join it from your phone with the password <code>pianolog-setup</code> (or your own, if you built the firmware yourself), open <code>http://192.168.4.1/setup</code>, choose your home network and type its password. The recorder joins it and closes its own network about 15 seconds later. It does the same whenever it cannot reach any known network.</p></div></li>
+<li><div><p>With the phone back on your home Wi-Fi, open <code>http://pianolog.local</code>.</p></div></li>
+<li><div><p>Tap a take to see its piano roll and hear it through the phone. <em>Download</em> saves the MIDI file. The star marks takes worth keeping.</p></div></li>
+</ol>
+<h3>How it decides what a take is</h3>
+<ul class="plain">
+<li>A take starts with the first key you press and ends after 60 seconds of silence. Change <code>gap_s</code> in <code>pianolog.txt</code> to taste.</li>
+<li>Takes are filed by day: <code>rec/2026-11-13/20-31-05_0185s_0412n.mid</code> is a take started at 20:31:05, 185 seconds long, 412 notes. The card can also be read directly in a computer.</li>
+<li>Each take is recorded into the board's own memory, which is built to survive power cuts. Once the take ends it is copied to the card, checked, and only then removed from the board. Takes not yet copied are marked <em>internal</em> on the page.</li>
+<li>Unplugging the power at any moment is fine: at most the last two seconds of a take are lost, and an interrupted take is completed at the next start.</li>
+<li>Without a card, when the board's memory is nearly full, the oldest takes are deleted to make room. Starred takes go only when nothing else is left.</li>
+<li>Privacy works the way it does on any recorder that never stops: anyone who plays is recorded, and anyone on your Wi-Fi can open the page. Pull the USB-C plug to stop it.</li>
+</ul>
+
+<h2>6. Updates over Wi-Fi</h2>
+<p>After the first flash, new versions go over the network. Laptop and recorder must be on the same Wi-Fi, and the network must let devices see each other; home networks do, guest and office networks often don't.</p>
+<ol class="steps">
+<li><div><p>Build the new version in the project folder: <code>idf.py build</code>.</p></div></li>
+<li><div><p>Send it:</p>
+<pre><code>tools/ota.sh</code></pre>
+<p>It uploads <code>build/pianolog.bin</code> to <code>http://pianolog.local</code> with the update token from your build settings. To use the recorder's own network instead: <code>tools/ota.sh build/pianolog.bin 192.168.4.1</code>.</p></div></li>
+<li><div><p>The recorder checks the file, closes any take in progress, and restarts into the new version within a few seconds.</p></div></li>
+</ol>
+<div class="note"><b>If the new version is broken</b>
+<p>A fresh version must reach the network within two minutes of starting. If it crashes or never gets there, the board goes back to the previous version by itself, so a bad update does not mean getting the cable out.</p></div>
+
+<h2>7. If something does not work</h2>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Symptom</th><th>Likely cause and fix</th></tr></thead>
+<tbody>
+<tr><td>Flashing stops with a chip revision error, or the board restarts in a loop</td><td>The other image is the right one for your chip. Repeat step 3 of section 4 with it.</td></tr>
+<tr><td>Page says <em>no card</em></td><td>Recording still works without it. Card is exFAT or not seated. Reformat as FAT32. If a FAT32 card is still not found, the card power wiring differs from what the firmware assumes: see <code>PL_SD_LDO_CHAN</code> and <code>PL_SD_EN_GPIO</code> in the settings menu and Waveshare's SD example.</td></tr>
+<tr><td>Page says <em>no piano detected</em></td><td>Check the cable is in the piano's TO HOST socket and the piano is on. The serial log shows <code>usb: MIDI device connected</code> on success. If nothing at all is logged when plugging in, measure whether the Type-A socket supplies 5 V; this could not be confirmed from the documentation. An interface cable depends on that power, so if it is missing use a USB power-injector (Y) cable.</td></tr>
+<tr><td>Log says the device has no MIDI IN endpoint</td><td>The instrument is not class-compliant USB MIDI (some older models need a vendor driver). Connect it through a USB-MIDI interface cable from its round MIDI OUT socket instead.</td></tr>
+<tr><td><code>pianolog.local</code> does not open</td><td>Some Android versions and networks do not resolve <code>.local</code> names. Use the address printed in the serial log or shown in your router's device list.</td></tr>
+<tr><td>Wi-Fi never starts, log shows esp_hosted errors</td><td>The ESP32-C6 on the board runs factory firmware that is too old for the driver in this build. Update it following the esp_hosted documentation. Recording keeps working meanwhile; read the card in a computer.</td></tr>
+<tr><td><code>tools/ota.sh</code> answers <em>401</em></td><td>The token on the board differs from the one in your build settings. If the board runs a ready-made image, its token is <code>CHANGE-ME-ota-token</code>: run <code>PIANOLOG_OTA_TOKEN=CHANGE-ME-ota-token tools/ota.sh</code>.</td></tr>
+<tr><td>Update says <em>no OTA slot</em></td><td>The board still has the partition layout of firmware 0.1. Flash once more by cable (section 4).</td></tr>
+<tr><td>After an update the old version is back</td><td>The new version did not reach the network within two minutes and was rolled back. Check its log over the cable.</td></tr>
+<tr><td>The setup page saved the network but the recorder never joins it</td><td>Wrong password, or a 5 GHz-only network. The setup network stays up, so join it again and retry.</td></tr>
+<tr><td>Take times are wrong, or takes appear under <em>Clock not set</em></td><td>The clock comes from the internet, or from your phone when the page is open. Takes made before either was available cannot be dated.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>8. What has been verified</h2>
+<div class="two">
+<div><h3>Checked on a PC</h3>
+<ul class="plain">
+<li>Both firmware images build with ESP-IDF 5.5.6, with update rollback enabled.</li>
+<li>MIDI parsing, file writing and power-loss repair pass unit tests, including a cut at every possible byte position.</li>
+<li>Moving takes to the card survives a simulated power cut before and after the final rename; the overwrite-oldest rule keeps starred takes and the live take.</li>
+<li>Files produced open correctly in an independent MIDI library.</li>
+<li>The web pages were exercised in a phone-sized browser against a simulated recorder: listing, playback, starring, opening a take that is still recording, and the Wi-Fi setup form.</li>
+</ul></div>
+<div><h3>Not checked: needs your board</h3>
+<ul class="plain">
+<li>Detection of a real piano on the Type-A port.</li>
+<li>Card power and Wi-Fi co-processor behaviour on this exact board.</li>
+<li>A real update and rollback, and network scanning while the setup network is up.</li>
+<li>Timing accuracy and behaviour over days of running.</li>
+</ul></div>
+</div>
+<p style="margin-top:14px">A printed case is deliberately left out of this revision. Clone and batch differences move connectors by a millimetre or two, so the case should be drawn from caliper measurements of the board you receive.</p>
+
+<footer>pianolog 0.2.0 · board: Waveshare ESP32-P4-NANO · source and firmware: <a href="https://github.com/PiotrJander/pianolog">github.com/PiotrJander/pianolog</a></footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# pianolog — Waveshare ESP32-P4-NANO (ESP32-P4 + ESP32-C6 over SDIO)
+CONFIG_IDF_TARGET="esp32p4"
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Long file names on the SD card
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
+
+# 1 ms scheduler tick keeps MIDI timestamps tight
+CONFIG_FREERTOS_HZ=1000
+
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_HTTPD_MAX_URI_LEN=512
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_LWIP_LOCAL_HOSTNAME="pianolog"
+
+# Over-the-air updates: a new image only stays if it boots far enough to reach the network.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# Recordings live first in on-board flash (power-loss-safe LittleFS).
+CONFIG_LITTLEFS_MAX_PARTITIONS=1
+CONFIG_LITTLEFS_USE_MTIME=y
+
+# --- Fill these in before building (or later, from the recorder's setup page). ---
+# Built-in home Wi-Fi, tried after the network saved from the setup page and the SD-card file.
+CONFIG_PL_WIFI_SSID="YOUR_WIFI_SSID"
+CONFIG_PL_WIFI_PASS="YOUR_WIFI_PASSWORD"
+# Password of the recorder's own fallback network (8+ characters).
+CONFIG_PL_AP_PASS="pianolog-setup"
+# Secret for over-the-air updates. Pick a long random string.
+CONFIG_PL_OTA_TOKEN="CHANGE-ME-ota-token"
+
+# Wi-Fi co-processor on the board is an ESP32-C6
+CONFIG_SLAVE_IDF_TARGET_ESP32C6=y
+
+# Chip revision: this build targets ESP32-P4 v3.0 and newer (boards marked P4NRW32X).
+# For older v0.x/v1.x chips add sdkconfig.defaults.rev1 (see README).
+CONFIG_ESP32P4_REV_MIN_300=y

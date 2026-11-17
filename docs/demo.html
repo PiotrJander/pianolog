@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14110f">
+<title>Pianolog Web Interface Demo</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#14110f;--panel:#1d1916;--line:#2e2823;--ink:#efe8df;--dim:#9a8f83;--accent:#e8a33d;--live:#e5533d;--ok:#7fb069}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:0 0 calc(env(safe-area-inset-bottom) + 24px)}
+body.playing{padding-bottom:330px}
+header{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px 10px}
+h1{margin:0 0 8px;font-size:20px;font-weight:650;letter-spacing:.2px}
+h1 span{color:var(--accent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chip.ok{color:var(--ok)} .chip.warn{color:var(--accent)} .chip.rec{color:#fff;background:var(--live);border-color:var(--live)}
+main{max-width:720px;margin:0 auto;padding:4px 12px}
+.day{margin-top:14px}
+.day>button{all:unset;display:flex;width:100%;justify-content:space-between;align-items:baseline;padding:8px 4px;cursor:pointer;color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.8px}
+.day>button b{color:var(--ink);font-weight:600}
+.take{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:6px 0;cursor:pointer}
+.take.sel{border-color:var(--accent)}
+.take .t{font-variant-numeric:tabular-nums;font-size:18px;font-weight:600;min-width:58px}
+.take .m{flex:1;color:var(--dim);font-size:13px}
+.take .m b{color:var(--ink);font-weight:500}
+.star{all:unset;font-size:22px;padding:2px 6px;color:var(--line);cursor:pointer}
+.star.on{color:var(--accent)}
+.badge{font-size:11px;color:#fff;background:var(--live);border-radius:6px;padding:1px 6px;margin-left:6px}
+.empty{color:var(--dim);text-align:center;padding:40px 16px}
+#player{position:fixed;left:0;right:0;bottom:0;z-index:3;background:var(--panel);border-top:1px solid var(--line);padding:10px 12px calc(env(safe-area-inset-bottom) + 12px);display:none}
+body.playing #player{display:block}
+#player .in{max-width:720px;margin:0 auto}
+#roll{display:block;width:100%;height:160px;background:var(--bg);border-radius:10px;touch-action:none}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px}
+#ttl{flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#clock{font-variant-numeric:tabular-nums;color:var(--dim);font-size:13px}
+input[type=range]{flex:1;accent-color:var(--accent);height:28px}
+.btn{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14px;text-align:center;color:var(--ink)}
+.btn.main{background:var(--accent);border-color:var(--accent);color:#1a1206;font-weight:650;min-width:52px}
+.btn.danger{color:var(--live)}
+a.btn{text-decoration:none}
+.grow{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>piano<span>log</span> <small style="font-size:12px;color:var(--dim);font-weight:400">demo with mock takes</small></h1>
+  <div class="chips" id="chips"><span class="chip">connecting…</span></div>
+</header>
+<main id="list"><div class="empty">Loading…</div></main>
+
+<div id="player"><div class="in">
+  <canvas id="roll"></canvas>
+  <div class="row"><div id="ttl"></div><div id="clock">0:00 / 0:00</div></div>
+  <div class="row"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"></div>
+  <div class="row">
+    <button class="btn main" id="play">Play</button>
+    <button class="btn" id="speed">1×</button>
+    <span class="grow"></span>
+    <a class="btn" id="dl" download>Download</a>
+    <button class="btn danger" id="del">Delete</button>
+    <button class="btn" id="close" aria-label="Close player">✕</button>
+  </div>
+</div></div>
+
+<script>
+// Demo shim: stands in for the recorder's HTTP API with takes embedded in this page.
+const MOCK = {"2026-11-13": {"20-31-05_0063s_0177n_star.mid": "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", "19-02-44_0013s_0060n.mid": "TVRoZAAAAAYAAAABA+hNVHJrAAACKwD/UQMPQkCBSJA8RIEWgDwAFJA+RIEWgD4AHpBARIEWgEAAHJBBR4EWgEEAFpBDRoEWgEMAF5BFS4EWgEUAHpBHRoEWgEcAHpBIQYEWgEgAHJBHQYEWgEcAHJBFR4EWgEUAHZBDS4EWgEMAFpBBQYEWgEEAH5BASIEWgEAAGZA+QIEWgD4AGZA8R4EWgDwAhx2QPkGBFoA+ABeQQEqBFoBAABeQQj+BFoBCABaQQ0GBFoBDABaQRUmBFoBFABWQR0KBFoBHABqQST+BFoBJABqQSkuBFoBKABqQSUaBFoBJAB+QR0CBFoBHABeQRUSBFoBFAB6QQ0iBFoBDABSQQj+BFoBCABeQQEeBFoBAAB6QPkOBFoA+AIcdkEA/gRaAQAAfkEJGgRaAQgAekERKgRaARAAZkEVGgRaARQAekEdLgRaARwAXkElKgRaASQAVkEtFgRaASwAVkEw+gRaATAAUkEtKgRaASwAckElHgRaASQAckEdHgRaARwAbkEVAgRaARQAXkERAgRaARAAVkEJBgRaAQgAWkEBLgRaAQACHGpBBQoEWgEEAHpBDP4EWgEMAHZBFPoEWgEUAFpBGSIEWgEYAG5BIP4EWgEgAFZBKQ4EWgEoAGpBMRYEWgEwAGpBNRoEWgE0AGZBMRIEWgEwAF5BKR4EWgEoAGZBIPoEWgEgAHpBGSYEWgEYAFJBFS4EWgEUAF5BDQIEWgEMAGpBBRYEWgEEAAP8vAA==", "07-48-10_0025s_0070n.mid": "TVRoZAAAAAYAAAABA+hNVHJrAAACVwD/UQMPQkCCLJA3Qw6QPj0OkENKDpBHPA6QSjqLJIA3AACAPgAAgEMAAIBHAACASgCCLJAyNw6QOUEOkD45DpBCQw6QRUmLJIAyAACAOQAAgD4AAIBCAACARQCCLJAyPQ6QOUcOkD5JDpBCQQ6QRT+LJIAyAACAOQAAgD4AAIBCAACARQCCLJA3Og6QPjwOkENDDpBHOw6QSkGLJIA3AACAPgAAgEMAAIBHAACASgCCLJAyQg6QOUQOkD48DpBCQw6QRT2LJIAyAACAOQAAgD4AAIBCAACARQCCLJA1OQ6QPEEOkEFADpBFRg6QSDqLJIA1AACAPAAAgEEAAIBFAACASACCLJAwQg6QN0oOkDw4DpBAPg6QQz+LJIAwAACANwAAgDwAAIBAAACAQwCCLJA3QQ6QPj0OkENDDpBHSQ6QSjyLJIA3AACAPgAAgEMAAIBHAACASgCCLJAyOQ6QOUMOkD5HDpBCRg6QRT2LJIAyAACAOQAAgD4AAIBCAACARQCCLJAwQw6QN0kOkDw3DpBAOg6QQ0qLJIAwAACANwAAgDwAAIBAAACAQwCCLJAwPg6QNz8OkDxFDpBAQw6QQ0eLJIAwAACANwAAgDwAAIBAAACAQwCCLJAwPQ6QN0MOkDw3DpBAOg6QQz+LJIAwAACANwAAgDwAAIBAAACAQwCCLJA3Pw6QPkEOkENIDpBHSA6QSkeLJIA3AACAPgAAgEMAAIBHAACASgCCLJA5Rw6QQEkOkEU6DpBJRQ6QTDmLJIA5AACAQAAAgEUAAIBJAACATAAA/y8A"}, "2026-11-12": {"21-15-30_0014s_0040n.mid": "TVRoZAAAAAYAAAABA+hNVHJrAAABWwD/UQMPQkCCLJAySg6QOTgOkD5DDpBCPA6QRUOLJIAyAACAOQAAgD4AAIBCAACARQCCLJA5PA6QQEYOkEVIDpBJSg6QTEqLJIA5AACAQAAAgEUAAIBJAACATACCLJAwRA6QN0YOkDxEDpBAQA6QQ0eLJIAwAACANwAAgDwAAIBAAACAQwCCLJA5Sg6QQEAOkEVCDpBJRw6QTECLJIA5AACAQAAAgEUAAIBJAACATACCLJA5Pw6QQEgOkEVADpBJQA6QTDeLJIA5AACAQAAAgEUAAIBJAACATACCLJAwPg6QN0kOkDw4DpBAPA6QQ0SLJIAwAACANwAAgDwAAIBAAACAQwCCLJA5OA6QQEEOkEVDDpBJOA6QTEmLJIA5AACAQAAAgEUAAIBJAACATACCLJA3OQ6QPj4OkENEDpBHRg6QSj+LJIA3AACAPgAAgEMAAIBHAACASgAA/y8A"}};
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const J = o => new Response(JSON.stringify(o), { headers: { "Content-Type": "application/json" } });
+window.confirm = () => true; window.alert = m => console.log(m);
+window.fetch = async (url) => {
+  const u = new URL(url, "http://pianolog.local"), q = u.searchParams, p = u.pathname;
+  if (p === "/api/status") return J({ version: "0.1.0", time: 1794600000, time_valid: true, sd: true, sd_free_mb: 29874, sd_total_mb: 30436,
+    usb: true, usb_name: "Digital Piano", events_usb: 5321, events_din: 0, recording: false, rec_day: "", rec_file: "", rec_s: 0, rec_notes: 0,
+    takes: 3, wifi: "sta", ssid: "home", ip: "192.168.1.50", gap_s: 60 });
+  if (p === "/api/days") return J(Object.keys(MOCK).filter(d => Object.keys(MOCK[d]).length).sort().reverse());
+  if (p === "/api/list") return J(Object.keys(MOCK[q.get("day")] || {}).map(f => { const m = /_(\d+)s_(\d+)n/.exec(f);
+    return { f, dur: +m[1], notes: +m[2], star: f.includes("_star"), size: 0, live: false }; }));
+  if (p.startsWith("/rec/")) { const [d, f] = p.slice(5).split("/"); return MOCK[d] && MOCK[d][f] ? new Response(b64(MOCK[d][f])) : new Response("", { status: 404 }); }
+  if (p === "/api/star") { const d = q.get("day"), f = q.get("f"), nf = f.replace("_star", "").replace(".mid", (q.get("on") === "1" ? "_star" : "") + ".mid");
+    const v = MOCK[d][f]; delete MOCK[d][f]; MOCK[d][nf] = v; return J({ f: nf }); }
+  if (p === "/api/delete") { delete MOCK[q.get("day")][q.get("f")]; return J({ ok: true }); }
+  return J({ ok: true });
+};
+document.addEventListener("click", e => { const a = e.target.closest("#dl"); if (a) { e.preventDefault(); a.textContent = "On device only"; setTimeout(() => a.textContent = "Download", 1500); } }, true);
+</script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+async function api(path, opt) {
+  const r = await fetch(path, opt);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ---------- status ----------
+let lastStatus = null;
+async function pollStatus() {
+  try {
+    const s = await api("/api/status");
+    if (!s.time_valid) fetch("/api/time?t=" + Math.floor(Date.now() / 1000), { method: "POST" });
+    const c = [];
+    if (s.recording) c.push(`<span class="chip rec">● recording ${fmt(s.rec_s)} · ${s.rec_notes} notes</span>`);
+    if (s.usb) c.push(`<span class="chip ok">USB: ${esc(s.usb_name)}</span>`);
+    else if (s.events_din > 0) c.push(`<span class="chip ok">DIN input active</span>`);
+    else c.push(`<span class="chip warn">no piano detected</span>`);
+    c.push(s.sd ? `<span class="chip">card: ${(s.sd_free_mb / 1024).toFixed(1)} GB free</span>`
+                : `<span class="chip warn">no SD card</span>`);
+    if (s.wifi === "ap") c.push(`<span class="chip warn">own Wi-Fi network</span>`);
+    $("#chips").innerHTML = c.join("");
+    const wasRec = lastStatus && lastStatus.recording;
+    if (lastStatus === null || (wasRec && !s.recording) || (!wasRec && s.recording)) loadDays();
+    lastStatus = s;
+  } catch (e) {
+    $("#chips").innerHTML = `<span class="chip warn">recorder unreachable</span>`;
+  }
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------- list ----------
+const dayCache = new Map();   // day -> takes[]
+const openDays = new Set();
+let days = [], firstLoad = true;
+
+function dayLabel(d) {
+  if (!/^\d{4}-\d\d-\d\d$/.test(d)) return "Clock not set";
+  const dt = new Date(d + "T12:00:00");
+  return dt.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+function takeTime(f) {
+  const m = /^(\d\d)-(\d\d)-(\d\d)/.exec(f);
+  return m ? m[1] + ":" + m[2] : f.split(/[_.]/)[0];
+}
+
+async function loadDays() {
+  try { days = await api("/api/days"); } catch (e) { return; }
+  if (firstLoad) { days.slice(0, 2).forEach(d => openDays.add(d)); firstLoad = false; }
+  dayCache.clear();
+  await Promise.all([...openDays].filter(d => days.includes(d)).map(loadDay));
+  render();
+}
+async function loadDay(d) {
+  const t = await api("/api/list?day=" + encodeURIComponent(d));
+  t.sort((a, b) => a.f < b.f ? 1 : -1);
+  dayCache.set(d, t);
+}
+function render() {
+  const el = $("#list");
+  if (!days.length) {
+    el.innerHTML = `<div class="empty">Nothing recorded yet.<br>Play a few notes — a take appears here by itself.</div>`;
+    return;
+  }
+  el.innerHTML = days.map(d => {
+    const takes = dayCache.get(d);
+    const body = openDays.has(d) && takes ? takes.map(t => {
+      const sel = cur && cur.day === d && cur.f === t.f ? " sel" : "";
+      const meta = t.live ? `<span class="badge">recording</span>`
+        : t.dur < 0 ? "unfinished take" : `<b>${fmt(t.dur)}</b> · ${t.notes} notes`;
+      return `<div class="take${sel}" data-day="${d}" data-f="${t.f}">
+        <div class="t">${takeTime(t.f)}</div><div class="m">${meta}</div>
+        ${t.dur < 0 ? "" : `<button class="star${t.star ? " on" : ""}" data-star aria-label="Star">★</button>`}</div>`;
+    }).join("") : "";
+    const n = takes ? takes.length + (takes.length === 1 ? " take" : " takes") : "show";
+    return `<section class="day"><button data-toggle="${d}"><b>${dayLabel(d)}</b><span>${n}</span></button>${body}</section>`;
+  }).join("");
+}
+$("#list").addEventListener("click", async ev => {
+  const tog = ev.target.closest("[data-toggle]");
+  if (tog) {
+    const d = tog.dataset.toggle;
+    if (openDays.has(d)) openDays.delete(d);
+    else { openDays.add(d); if (!dayCache.has(d)) await loadDay(d); }
+    return render();
+  }
+  const row = ev.target.closest(".take");
+  if (!row) return;
+  const day = row.dataset.day, f = row.dataset.f;
+  if (ev.target.closest("[data-star]")) {
+    const t = dayCache.get(day).find(x => x.f === f);
+    try {
+      const r = await api(`/api/star?day=${day}&f=${f}&on=${t.star ? 0 : 1}`, { method: "POST" });
+      if (cur && cur.day === day && cur.f === f) { cur.f = r.f; setDownload(); }
+      t.f = r.f; t.star = !t.star; render();
+    } catch (e) { alert("Could not change the star: " + e.message); }
+    return;
+  }
+  openTake(day, f);
+});
+
+// ---------- MIDI file parsing ----------
+function parseMidi(buf) {
+  const u = new Uint8Array(buf), dv = new DataView(buf);
+  const tag = o => String.fromCharCode(u[o], u[o + 1], u[o + 2], u[o + 3]);
+  if (u.length < 22 || tag(0) !== "MThd") throw new Error("not a MIDI file");
+  const div = dv.getUint16(12) & 0x7FFF;
+  let p = 8 + dv.getUint32(4);
+  const notes = [], pedal = [];
+  let usPerQ = 500000, total = 0;
+  while (p + 8 <= u.length && tag(p) === "MTrk") {
+    const len = dv.getUint32(p + 4);
+    p += 8;
+    const end = len ? Math.min(p + len, u.length) : u.length;
+    const varlen = () => { let v = 0, b; do { b = u[p++]; v = (v << 7) | (b & 0x7F); } while (b & 0x80 && p < end); return v; };
+    const held = new Map();
+    let ms = 0, run = 0;
+    while (p < end) {
+      ms += varlen() * usPerQ / div / 1000;
+      let s = u[p];
+      if (s & 0x80) p++; else s = run;
+      if (s === 0xFF) {
+        const type = u[p++], l = varlen();
+        if (type === 0x51 && l === 3) usPerQ = (u[p] << 16) | (u[p + 1] << 8) | u[p + 2];
+        p += l;
+        if (type === 0x2F) break;
+      } else if (s === 0xF0 || s === 0xF7) {
+        p += varlen();
+      } else if (s >= 0x80) {
+        run = s;
+        const hi = s & 0xF0, a = u[p++], b = (hi === 0xC0 || hi === 0xD0) ? 0 : u[p++];
+        const key = (s & 15) * 128 + a;
+        if (hi === 0x90 && b > 0) {
+          const o = held.get(key);
+          if (o) { o.d = ms - o.t; notes.push(o); }
+          held.set(key, { t: ms, d: 0, p: a, v: b });
+        } else if (hi === 0x80 || hi === 0x90) {
+          const o = held.get(key);
+          if (o) { o.d = ms - o.t; notes.push(o); held.delete(key); }
+        } else if (hi === 0xB0 && a === 64) {
+          pedal.push({ t: ms, on: b >= 64 });
+        }
+      } else break;       // corrupt data: keep what we have
+    }
+    for (const o of held.values()) { o.d = Math.max(50, ms - o.t); notes.push(o); }
+    total = Math.max(total, ms);
+    p = end;
+  }
+  notes.sort((x, y) => x.t - y.t);
+  // Sounding end of every note: the key release, or the next pedal lift if the pedal was down then.
+  const ups = pedal.filter(e => !e.on).map(e => e.t);
+  const lastLE = (arr, key, t) => { let a = 0, b = arr.length; while (a < b) { const m = (a + b) >> 1; if (key(arr[m]) <= t) a = m + 1; else b = m; } return a - 1; };
+  const pedalAt = t => { const i = lastLE(pedal, e => e.t, t); return i >= 0 && pedal[i].on; };
+  for (const n of notes) {
+    let e = n.t + n.d;
+    if (pedal.length && pedalAt(e)) { const i = lastLE(ups, t => t, e) + 1; e = i < ups.length ? ups[i] : total; }
+    n.e = Math.max(e, n.t + 40);
+    total = Math.max(total, n.t + n.d);
+  }
+  let lo = 127, hi = 0, maxLen = 0;
+  for (const n of notes) { lo = Math.min(lo, n.p); hi = Math.max(hi, n.p); maxLen = Math.max(maxLen, n.d); }
+  return { notes, total, lo, hi, maxLen };
+}
+
+// ---------- synth ----------
+let ac, master;
+const voices = new Set();
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ac.createDynamicsCompressor();
+    master = ac.createGain();
+    master.gain.value = 0.5;
+    master.connect(comp); comp.connect(ac.destination);
+  }
+  if (ac.state === "suspended") ac.resume();
+  return ac;
+}
+function playNote(n, when, endWhen) {
+  const f = 440 * Math.pow(2, (n.p - 69) / 12);
+  const peak = 0.04 + 0.5 * Math.pow(n.v / 127, 1.8);
+  const tau = 0.35 + (108 - n.p) / 87 * 1.9;            // low strings ring longer
+  const g = ac.createGain(), lp = ac.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = Math.min(9000, f * (2.5 + 5 * n.v / 127));
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(peak, when + 0.006);
+  g.gain.setTargetAtTime(0, when + 0.006, tau);
+  g.gain.setTargetAtTime(0, endWhen, 0.07);             // damper
+  const oscs = [["triangle", 1, 1], ["sine", 2.001, 0.35], ["sine", 3.002, 0.12]].map(([type, mul, lvl]) => {
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = type; o.frequency.value = f * mul; og.gain.value = lvl;
+    o.connect(og); og.connect(lp);
+    o.start(when); o.stop(endWhen + 0.6);
+    return o;
+  });
+  lp.connect(g); g.connect(master);
+  const v = { g, oscs };
+  voices.add(v);
+  oscs[0].onended = () => voices.delete(v);
+}
+function silence() {
+  if (!ac) return;
+  const now = ac.currentTime;
+  for (const v of voices) {
+    v.g.gain.cancelScheduledValues(now);
+    v.g.gain.setTargetAtTime(0, now, 0.02);
+    v.oscs.forEach(o => { try { o.stop(now + 0.15); } catch (e) {} });
+  }
+  voices.clear();
+}
+
+// ---------- player ----------
+let cur = null;           // { day, f, song }
+let playing = false, pos = 0, speed = 1, startAc = 0, startPos = 0, nextIdx = 0, timer = 0;
+const speeds = [1, 0.5, 0.75, 1.5];
+
+function setDownload() { $("#dl").href = `/rec/${cur.day}/${cur.f}`; $("#dl").download = `piano_${cur.day}_${cur.f}`; }
+async function openTake(day, f) {
+  stop();
+  try {
+    const r = await fetch(`/rec/${day}/${f}`);
+    if (!r.ok) throw new Error("download failed");
+    const song = parseMidi(await r.arrayBuffer());
+    cur = { day, f, song };
+  } catch (e) { alert("Could not open this take: " + e.message); return; }
+  pos = 0;
+  $("#ttl").textContent = dayLabel(day) + " · " + takeTime(f);
+  setDownload();
+  document.body.classList.add("playing");
+  render(); sizeCanvas(); draw();
+}
+function now() { return playing ? startPos + (ac.currentTime - startAc) * 1000 * speed : pos; }
+function start() {
+  if (!cur) return;
+  audio();
+  if (pos >= cur.song.total) pos = 0;
+  startPos = pos; startAc = ac.currentTime + 0.05;
+  nextIdx = cur.song.notes.findIndex(n => n.t >= pos);
+  if (nextIdx < 0) nextIdx = cur.song.notes.length;
+  playing = true;
+  $("#play").textContent = "Pause";
+  timer = setInterval(schedule, 30);
+  schedule();
+  requestAnimationFrame(frame);
+}
+function schedule() {
+  const p = now(), horizon = p + 200 * speed, N = cur.song.notes;
+  while (nextIdx < N.length && N[nextIdx].t < horizon) {
+    const n = N[nextIdx++];
+    const when = startAc + (n.t - startPos) / 1000 / speed;
+    playNote(n, Math.max(when, ac.currentTime), startAc + (n.e - startPos) / 1000 / speed);
+  }
+  if (p >= cur.song.total + 400) { stop(); pos = cur.song.total; draw(); }
+}
+function stop() {
+  if (playing) pos = Math.min(now(), cur.song.total);
+  playing = false;
+  clearInterval(timer);
+  silence();
+  $("#play").textContent = "Play";
+}
+function frame() { draw(); if (playing) requestAnimationFrame(frame); }
+
+$("#play").onclick = () => playing ? stop() : start();
+$("#speed").onclick = () => {
+  const was = playing; if (was) stop();
+  speed = speeds[(speeds.indexOf(speed) + 1) % speeds.length];
+  $("#speed").textContent = speed + "×";
+  if (was) start();
+};
+$("#seek").oninput = e => {
+  const was = playing; if (was) stop();
+  pos = cur.song.total * e.target.value / 1000;
+  if (was) start(); else draw();
+};
+$("#close").onclick = () => { stop(); cur = null; document.body.classList.remove("playing"); render(); };
+$("#del").onclick = async () => {
+  if (!cur || !confirm("Delete this take from the recorder?")) return;
+  try {
+    await api(`/api/delete?day=${cur.day}&f=${cur.f}`, { method: "POST" });
+    $("#close").onclick();
+    loadDays();
+  } catch (e) { alert("Could not delete: " + e.message); }
+};
+
+// ---------- piano roll ----------
+const cv = $("#roll"), g2 = cv.getContext("2d");
+function sizeCanvas() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+}
+window.addEventListener("resize", () => { if (cur) { sizeCanvas(); draw(); } });
+function draw() {
+  if (!cur) return;
+  const { notes, total, maxLen } = cur.song, p = now();
+  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1;
+  const lo = Math.min(cur.song.lo, 48) - 2, hi = Math.max(cur.song.hi, 72) + 2;
+  const rowH = H / (hi - lo + 1), pxPerMs = W / 8000, headX = W * 0.25;
+  g2.clearRect(0, 0, W, H);
+  g2.fillStyle = "#1b1714";
+  for (let n = lo; n <= hi; n++) if ([1, 3, 6, 8, 10].includes(n % 12)) g2.fillRect(0, H - (n - lo + 1) * rowH, W, rowH);
+  const from = p - headX / pxPerMs - maxLen, to = p + (W - headX) / pxPerMs;
+  let i = 0, a = 0, b = notes.length;
+  while (a < b) { i = (a + b) >> 1; if (notes[i].t < from) a = i + 1; else b = i; }
+  for (i = a; i < notes.length && notes[i].t < to; i++) {
+    const n = notes[i], x = headX + (n.t - p) * pxPerMs, w = Math.max(2 * dpr, n.d * pxPerMs);
+    const sounding = n.t <= p && p < n.t + n.d;
+    g2.globalAlpha = sounding ? 1 : 0.35 + 0.55 * n.v / 127;
+    g2.fillStyle = sounding ? "#ffd28a" : "#e8a33d";
+    g2.fillRect(x, H - (n.p - lo + 1) * rowH + 0.5, w, Math.max(rowH - 1, 2));
+  }
+  g2.globalAlpha = 1;
+  g2.fillStyle = "#efe8df";
+  g2.fillRect(headX, 0, Math.max(1, dpr), H);
+  $("#clock").textContent = fmt(p / 1000) + " / " + fmt(total / 1000);
+  if (document.activeElement !== $("#seek") || playing) $("#seek").value = total ? Math.round(p / total * 1000) : 0;
+}
+
+pollStatus();
+setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
+</script>
+</body>
+</html>
