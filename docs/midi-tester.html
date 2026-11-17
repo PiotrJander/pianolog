@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pianolog MIDI Tester</title>
+<link rel="icon" href="data:,">
+<style>
+/* Layout: one column of panels. Top: output port. Middle: tunes with transport. Bottom: edge-case
+   tests, each with its expected result, and a log of what was sent. */
+:root{
+  --bg:#f3f4f1; --panel:#ffffff; --ink:#1b2127; --dim:#5d6873; --line:#d3d8da;
+  --accent:#0c6f78; --warn:#b4530a; --ok:#2f7d3a;
+  --mono:ui-monospace,Menlo,Consolas,monospace; --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171b; --panel:#182026; --ink:#e6ebee; --dim:#98a4ae; --line:#2f3a43; --accent:#5fc3cb; --warn:#f0a04b; --ok:#7fc58a; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12171b; --panel:#182026; --ink:#e6ebee; --dim:#98a4ae; --line:#2f3a43; --accent:#5fc3cb; --warn:#f0a04b; --ok:#7fc58a; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+main{max-width:860px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:24px;text-wrap:balance}
+h2{margin:0 0 10px;font-size:17px}
+p{margin:0 0 8px;max-width:70ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.warnbox{border-left:4px solid var(--warn)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+select,input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+input[type=number]{width:5.5em}
+button{font:inherit;cursor:pointer;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 12px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--panel);font-weight:600}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.status{font:13px var(--mono);color:var(--dim)}
+.status b{color:var(--ink)}
+.tunes{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.tune{text-align:left;padding:10px 12px}
+.tune.sel{border-color:var(--accent);outline:1px solid var(--accent)}
+.tune small{display:block;color:var(--dim)}
+progress{width:100%;height:8px;accent-color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--dim)}
+td.exp{color:var(--dim);width:38%}
+td.act{white-space:nowrap;width:1%}
+.tablewrap{overflow-x:auto}
+.tablewrap table{min-width:560px}
+#log{font:12px/1.45 var(--mono);height:180px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;white-space:pre-wrap;margin:0}
+code{font:13px var(--mono);background:var(--bg);padding:0 4px;border-radius:3px}
+.pill{display:inline-block;font:12px var(--mono);padding:1px 8px;border-radius:99px;border:1px solid var(--line)}
+.pill.ok{color:var(--ok);border-color:var(--ok)} .pill.warn{color:var(--warn);border-color:var(--warn)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>pianolog MIDI tester</h1>
+    <p style="color:var(--dim)">Plays tunes and edge-case sequences into a MIDI output of this computer, to exercise the recorder without a piano. Needs Chrome, Edge or Firefox (Safari has no Web MIDI).</p>
+  </header>
+
+  <section class="panel warnbox">
+    <h2>Getting the MIDI to the recorder</h2>
+    <p>A laptop cannot be plugged straight into the recorder: both ends are USB hosts. Use any MIDI output this computer has, and a path to the recorder's Type-A port, for example:</p>
+    <p>two cheap USB-MIDI interface cables joined by a 5-pin DIN coupler (laptop → OUT plug → coupler → IN plug → recorder), or the piano itself acting as a bridge if it has MIDI IN and forwards it (most don't). Pick the port below; <em>Also play here</em> lets you hear what is being sent.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Output</h2>
+    <div class="row">
+      <label for="port">MIDI port</label>
+      <select id="port"><option>— not connected —</option></select>
+      <button id="connect" class="primary">Connect MIDI</button>
+      <label><input type="checkbox" id="local" checked> Also play here</label>
+    </div>
+    <p class="status" id="midistate" style="margin-top:8px">Click <b>Connect MIDI</b>; the browser asks for permission (SysEx too, for the SysEx tests).</p>
+    <div class="row" style="margin-top:6px">
+      <label for="gap">Recorder's <code>gap_s</code></label>
+      <input type="number" id="gap" min="5" max="3600" value="60">
+      <span class="status">Set the same value as in <code>pianolog.txt</code>. Tip: <code>gap_s=10</code> makes the gap tests quick.</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Tunes</h2>
+    <div class="tunes" id="tunes"></div>
+    <div class="row" style="margin-top:12px">
+      <button id="play" class="primary">Play</button>
+      <button id="stop">Stop</button>
+      <label for="tempo">Tempo</label>
+      <input type="number" id="tempo" min="30" max="240" value="100"> <span class="status">BPM</span>
+    </div>
+    <progress id="prog" value="0" max="1" style="margin-top:10px"></progress>
+    <p class="status" id="tunestate">Pick a tune.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Edge cases</h2>
+    <p class="status">Each test sends its sequence once. Compare the recorder's web page with the expected result; the note count appears in the take's file name (<code>_0123n</code>). Wait for the previous take to close (gap_s of silence) before starting the next test, unless the test says otherwise.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Test</th><th>Expected on the recorder</th><th></th></tr></thead>
+      <tbody id="tests"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Sent</h2><button id="panic">All notes off</button></div>
+    <pre id="log" aria-live="off"></pre>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+let access = null, out = null;
+
+// ---------- log ----------
+const logEl = $("#log"); let logLines = [];
+function log(t) { logLines.push(new Date().toLocaleTimeString() + "  " + t); if (logLines.length > 400) logLines = logLines.slice(-300); logEl.textContent = logLines.join("\n"); logEl.scrollTop = 1e9; }
+const hex = a => Array.from(a, b => b.toString(16).padStart(2, "0")).join(" ");
+
+// ---------- MIDI ----------
+$("#connect").onclick = async () => {
+  if (!navigator.requestMIDIAccess) { $("#midistate").textContent = "This browser has no Web MIDI. Use Chrome, Edge or Firefox."; return; }
+  try { access = await navigator.requestMIDIAccess({ sysex: true }); }
+  catch (e) {
+    try { access = await navigator.requestMIDIAccess(); $("#midistate").textContent = "Connected without SysEx permission: SysEx tests will be skipped."; }
+    catch (e2) { $("#midistate").textContent = "MIDI permission refused: " + e2.message; return; }
+  }
+  access.onstatechange = fillPorts; fillPorts();
+};
+function fillPorts() {
+  const sel = $("#port"), prev = sel.value; sel.innerHTML = "";
+  const outs = [...access.outputs.values()];
+  if (!outs.length) sel.innerHTML = "<option value=''>— no MIDI outputs found —</option>";
+  for (const o of outs) sel.add(new Option(o.name + (o.manufacturer ? " · " + o.manufacturer : ""), o.id));
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  pickPort();
+}
+function pickPort() {
+  out = access && access.outputs.get($("#port").value) || null;
+  $("#midistate").innerHTML = out ? `Sending to <b>${out.name}</b>${access.sysexEnabled ? " · SysEx allowed" : " · no SysEx"}.` : "No MIDI output selected; only local sound.";
+}
+$("#port").onchange = pickPort;
+
+// ---------- local preview synth ----------
+let ac = null; const voices = new Map();
+function audio() { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); return ac; }
+function localSound(m, whenPerf) {
+  if (!$("#local").checked || m.length > 3) return;
+  const a = audio(), when = Math.max(a.currentTime, a.currentTime + (whenPerf - performance.now()) / 1000);
+  const st = m[0] & 0xF0, key = (m[0] & 15) * 128 + m[1];
+  if (st === 0x90 && m[2] > 0) {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = "triangle"; o.frequency.value = 440 * Math.pow(2, (m[1] - 69) / 12);
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(0.05 + 0.25 * m[2] / 127, when + 0.008);
+    g.gain.setTargetAtTime(0, when + 0.01, 0.9);
+    o.connect(g); g.connect(a.destination); o.start(when); o.stop(when + 4);
+    const old = voices.get(key); if (old) old.g.gain.setTargetAtTime(0, when, 0.03);
+    voices.set(key, { o, g });
+  } else if (st === 0x80 || st === 0x90) {
+    const v = voices.get(key); if (v) { v.g.gain.cancelScheduledValues(when); v.g.gain.setTargetAtTime(0, when, 0.05); voices.delete(key); }
+  }
+}
+
+// One send path for everything. Returns false if the message cannot go out.
+function send(m, at) {
+  if (m[0] === 0xF0 && !(access && access.sysexEnabled)) return false;
+  if (out) { try { out.send(m, at); } catch (e) { log("send failed: " + e.message); return false; } }
+  localSound(m, at || performance.now());
+  return true;
+}
+
+// ---------- sequence player ----------
+// A sequence is a sorted array of [ms, Uint8Array-like]. Lookahead scheduling keeps timing tight.
+let seq = null, seqPos = 0, seqStart = 0, seqPausedAt = 0, timer = 0, playing = false, onDone = null, held = new Set();
+function schedule() {
+  const now = performance.now(), horizon = now + 60;
+  while (seqPos < seq.length && seqStart + seq[seqPos][0] <= horizon) {
+    const [t, m] = seq[seqPos++];
+    const at = Math.max(now, seqStart + t);
+    if (send(m, at)) track(m);
+    if (m.length <= 3 && (m[0] & 0xF0) !== 0x90 && (m[0] & 0xF0) !== 0x80) log(hex(m));
+    else if (m.length > 3) log(`sysex ${m.length} bytes: ${hex(m.slice(0, 6))} …`);
+  }
+  const total = seq.length ? seq[seq.length - 1][0] : 0;
+  $("#prog").value = total ? Math.min(1, (now - seqStart) / total) : 1;
+  if (seqPos >= seq.length && now >= seqStart + total) finish();
+}
+function track(m) {
+  const st = m[0] & 0xF0, key = m[0] * 256 + m[1];
+  if (st === 0x90 && m[2] > 0) held.add((m[0] & 15) * 128 + m[1]);
+  else if (st === 0x80 || st === 0x90) held.delete((m[0] & 15) * 128 + m[1]);
+}
+function start(sequence, label, done) {
+  stop(true);
+  seq = sequence; seqPos = 0; seqStart = performance.now() + 60; playing = true; onDone = done || null;
+  if ($("#local").checked) audio();
+  timer = setInterval(schedule, 15); schedule();
+  setTransport(label);
+}
+function pause() {
+  if (!playing) return;
+  clearInterval(timer); playing = false; seqPausedAt = performance.now() - seqStart;
+  // Drop messages already queued with future timestamps where the browser allows it, then
+  // replay from the pause point; otherwise they still go out, so silence again a moment later.
+  if (out && typeof out.clear === "function") {
+    try { out.clear(); while (seqPos > 0 && seq[seqPos - 1][0] >= seqPausedAt) seqPos--; } catch (e) {}
+  }
+  releaseHeld(); setTimeout(releaseHeld, 120); setTransport();
+}
+function resume() {
+  if (!seq || playing || seqPos >= seq.length) return;
+  seqStart = performance.now() + 60 - seqPausedAt; playing = true;
+  timer = setInterval(schedule, 15); setTransport();
+}
+function stop(quiet) {
+  clearInterval(timer); if (playing || held.size) releaseHeld();
+  playing = false; seq = null; seqPos = 0; $("#prog").value = 0; onDone = null;
+  if (!quiet) setTransport();
+}
+function finish() {
+  clearInterval(timer); playing = false; const cb = onDone; onDone = null; seq = null;
+  $("#prog").value = 1; setTransport(); if (cb) cb();
+}
+function releaseHeld() {
+  for (const k of held) send([0x80 | (k >> 7), k & 127, 0], performance.now());
+  held.clear();
+  for (let ch = 0; ch < 16; ch++) send([0xB0 | ch, 64, 0]);     // pedal up
+}
+function setTransport(label) {
+  if (label) $("#tunestate").dataset.label = label;
+  const l = $("#tunestate").dataset.label || "";
+  $("#play").textContent = playing ? "Pause" : (seq && seqPos > 0 ? "Resume" : "Play");
+  $("#tunestate").textContent = playing ? "Playing: " + l : seq && seqPos > 0 ? "Paused: " + l : l ? "Ready: " + l : "Pick a tune.";
+}
+$("#panic").onclick = () => { stop(); for (let ch = 0; ch < 16; ch++) { send([0xB0 | ch, 123, 0]); send([0xB0 | ch, 64, 0]); } log("all notes off, pedal up on 16 channels"); };
+
+// ---------- building sequences ----------
+const N = n => { const m = /^([A-G])(#|b)?(-?\d)$/.exec(n); return 12 * (+m[3] + 1) + { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] === "#" ? 1 : m[2] === "b" ? -1 : 0); };
+function voice(ev, notes, beatMs, ch, vel, startBeat, legato) {
+  // notes: "E5:1 D#5:.5 r:1 C4+E4+A4:2" — duration in beats, r = rest, + = chord
+  let b = startBeat || 0;
+  for (const tok of notes.trim().split(/\s+/)) {
+    const [p, d] = tok.split(":"); const dur = parseFloat(d || "1");
+    if (p !== "r") for (const n of p.split("+")) {
+      const t = b * beatMs, v = Math.max(1, Math.min(127, Math.round(vel + (Math.random() * 10 - 5))));
+      ev.push([t + Math.random() * 6, [0x90 | ch, N(n), v]]);
+      ev.push([t + dur * beatMs * (legato || 0.92), [0x80 | ch, N(n), 0]]);
+    }
+    b += dur;
+  }
+  return b;
+}
+const sortSeq = ev => ev.map(([t, m]) => [Math.round(t), m]).sort((a, b) => a[0] - b[0] || ((a[1][0] & 0xF0) === 0x80 ? -1 : 1));
+
+const TUNES = {
+  ode: { name: "Ode to Joy", sub: "Beethoven · melody + bass", build(bpm) {
+    const ev = [], q = 60000 / bpm;
+    const m = "E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4:1.5 D4:.5 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4:1.5 C4:.5 C4:2";
+    voice(ev, m, q, 0, 80);
+    voice(ev, "C3:4 G2:4 C3:4 G2:2 G2:2 C3:4 G2:4 C3:4 G2:2 C3:2", q, 0, 58);
+    return sortSeq(ev);
+  }},
+  twinkle: { name: "Twinkle, Twinkle", sub: "with pedal on every bar", build(bpm) {
+    const ev = [], q = 60000 / bpm;
+    voice(ev, "C5 C5 G5 G5 A5 A5 G5:2 F5 F5 E5 E5 D5 D5 C5:2 G5 G5 F5 F5 E5 E5 D5:2 G5 G5 F5 F5 E5 E5 D5:2 C5 C5 G5 G5 A5 A5 G5:2 F5 F5 E5 E5 D5 D5 C5:2", q, 0, 76);
+    const A1 = "C3+G3:2 C3+G3:2 F3+A3:2 C3+G3:2 ", A2 = "F3+A3:2 C3+G3:2 G2+D3:2 C3+E3:2 ", B = "C3+G3:2 F3+A3:2 C3+G3:2 G2+D3:2 ";
+    voice(ev, A1 + A2 + B + B + A1 + A2, q, 0, 54, 0, 0.98);
+    for (let bar = 0; bar < 12; bar++) { ev.push([bar * 4 * q - 30, [0xB0, 64, 0]]); ev.push([bar * 4 * q + 40, [0xB0, 64, 110]]); }
+    ev.push([48 * q, [0xB0, 64, 0]]);
+    return sortSeq(ev.filter(e => e[0] >= 0));
+  }},
+  elise: { name: "Für Elise (opening)", sub: "Beethoven · two hands", build(bpm) {
+    const ev = [], e = 60000 / bpm / 2;   // one unit = an eighth note at the given quarter-note tempo
+    const rh = "E5 D#5 E5 D#5 E5 B4 D5 C5 A4:2 r C4 E4 A4 B4:2 r E4 G#4 B4 C5:2 r E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4:2 r C4 E4 A4 B4:2 r E4 C5 B4 A4:3";
+    voice(ev, rh, e, 0, 72);
+    voice(ev, "r:8 A2 E3 A3 r:3 E2 E3 G#3 r:3 A2 E3 A3 r:9 A2 E3 A3 r:3 E2 E3 G#3 r:3 A2 E3 A3:3", e, 0, 52);
+    for (const b of [8, 14, 20, 32, 38, 44]) { ev.push([b * e, [0xB0, 64, 100]]); ev.push([(b + 5.8) * e, [0xB0, 64, 0]]); }
+    return sortSeq(ev);
+  }},
+  scales: { name: "Scales and arpeggios", sub: "fast, both hands, dynamics", build(bpm) {
+    const ev = [], s = 60000 / bpm / 4;
+    let b = 0;
+    for (const [root, oct] of [["C", 4], ["G", 3], ["D", 4], ["A", 3]]) {
+      const base = N(root + oct), steps = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24];
+      const up = steps.map(x => base + x), path = up.concat(up.slice(0, -1).reverse());
+      path.forEach((p, i) => { const v = 40 + Math.round(70 * Math.sin(Math.PI * i / path.length)); ev.push([(b + i) * s, [0x90, p, v]]); ev.push([(b + i + 0.9) * s, [0x80, p, 0]]); ev.push([(b + i) * s, [0x90, p - 12, v - 10]]); ev.push([(b + i + 0.9) * s, [0x80, p - 12, 0]]); });
+      b += path.length + 4;
+    }
+    return sortSeq(ev);
+  }},
+};
+let tuneKey = "ode";
+function renderTunes() {
+  $("#tunes").innerHTML = Object.entries(TUNES).map(([k, t]) => {
+    const sq = t.build(+$("#tempo").value || 100), n = sq.filter(e => (e[1][0] & 0xF0) === 0x90 && e[1][2] > 0).length;
+    return `<button class="tune${k === tuneKey ? " sel" : ""}" data-k="${k}">${t.name}<small>${t.sub} · ${n} notes · ${Math.round(sq[sq.length - 1][0] / 1000)} s</small></button>`;
+  }).join("");
+}
+$("#tunes").onclick = e => { const b = e.target.closest(".tune"); if (!b) return; tuneKey = b.dataset.k; stop(); renderTunes(); setTransport(TUNES[tuneKey].name); };
+$("#tempo").onchange = () => { stop(); renderTunes(); };
+$("#play").onclick = () => {
+  if (playing) return pause();
+  if (seq && seqPos > 0 && seqPos < seq.length) return resume();
+  const t = TUNES[tuneKey], sq = t.build(+$("#tempo").value || 100);
+  log(`tune "${t.name}": ${sq.length} messages`);
+  start(sq, t.name);
+};
+$("#stop").onclick = () => stop();
+
+// ---------- edge-case tests ----------
+const gapMs = () => Math.max(5, +$("#gap").value || 60) * 1000;
+const phrase = (ms0, ch, base, count) => { const ev = []; for (let i = 0; i < count; i++) { const p = base + [0, 4, 7, 12, 7, 4][i % 6]; ev.push([ms0 + i * 180, [0x90 | ch, p, 70]]); ev.push([ms0 + i * 180 + 160, [0x80 | ch, p, 0]]); } return ev; };
+const sysex = n => { const a = [0xF0, 0x7D]; for (let i = 0; i < n - 3; i++) a.push(i & 0x7F); a.push(0xF7); return a; };
+
+const TESTS = [
+  { name: "Two takes", desc: "8 notes, silence of gap_s + 5 s, 8 notes",
+    exp: () => "Two takes, 8 notes each. The first closes about gap_s after its last note.",
+    build: () => sortSeq([...phrase(0, 0, 60, 8), ...phrase(1440 + gapMs() + 5000, 0, 64, 8)]) },
+  { name: "Pause just under the gap", desc: "8 notes, silence of gap_s − 4 s, 8 notes",
+    exp: () => "One take with 16 notes and a long quiet stretch in the piano roll.",
+    build: () => sortSeq([...phrase(0, 0, 60, 8), ...phrase(1440 + gapMs() - 4000, 0, 67, 8)]) },
+  { name: "Pedal before the first note", desc: "pedal down, 3 s wait, 6 notes, pedal up",
+    exp: () => "One take, 6 notes, starting at the first note (not 3 s earlier). Notes ring on until the pedal lifts.",
+    build: () => sortSeq([[0, [0xB0, 64, 127]], ...phrase(3000, 0, 55, 6), [5000, [0xB0, 64, 0]]]) },
+  { name: "Controls only, no notes", desc: "program change, volume, pitch bend, aftertouch, MIDI clock and active sensing for 10 s",
+    exp: () => "No new take. Only a note starts a take.",
+    build: () => { const ev = [[0, [0xC0, 5]], [200, [0xB0, 7, 100]], [400, [0xE0, 0, 80]], [600, [0xD0, 50]], [800, [0xA0, 60, 40]]];
+      for (let t = 0; t < 10000; t += 21) ev.push([t, [0xF8]]); for (let t = 0; t < 10000; t += 300) ev.push([t, [0xFE]]); return sortSeq(ev); } },
+  { name: "All 16 channels", desc: "one note on each channel 1–16",
+    exp: () => "One take, 16 notes. In a DAW each note sits on its own channel.",
+    build: () => { const ev = []; for (let ch = 0; ch < 16; ch++) { ev.push([ch * 150, [0x90 | ch, 48 + ch * 2, 80]]); ev.push([ch * 150 + 400, [0x80 | ch, 48 + ch * 2, 0]]); } return sortSeq(ev); } },
+  { name: "Velocity-0 note-offs", desc: "12 notes ended with Note On velocity 0 (what many pianos send)",
+    exp: () => "One take, 12 notes, with normal note lengths (not stuck).",
+    build: () => { const ev = []; for (let i = 0; i < 12; i++) { const p = 60 + i; ev.push([i * 200, [0x90, p, 75]]); ev.push([i * 200 + 180, [0x90, p, 0]]); } return sortSeq(ev); } },
+  { name: "SysEx inside a take", desc: "note, 6-byte GM reset, note, 600-byte SysEx, note, 1100-byte SysEx, note",
+    exp: () => "One take, 4 notes. The GM reset and the 600-byte SysEx are in the file; the 1100-byte one is over the recorder's 1 kB limit and is dropped. Some cheap USB-MIDI cables mangle long SysEx, so a failure here may be the cable.",
+    needsSysex: true,
+    build: () => sortSeq([[0, [0x90, 60, 80]], [300, [0x80, 60, 0]], [500, [0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7]], [800, [0x90, 62, 80]], [1100, [0x80, 62, 0]], [1300, sysex(600)], [1700, [0x90, 64, 80]], [2000, [0x80, 64, 0]], [2200, sysex(1100)], [2600, [0x90, 65, 80]], [2900, [0x80, 65, 0]]]) },
+  { name: "Burst: 2000 notes in 10 s", desc: "dense clusters, 200 notes (400 messages) per second, about 40% of what a 5-pin DIN link can carry",
+    exp: () => "One take, exactly 2000 notes (file name ends _2000n). Fewer means events were lost: in the recorder, or in a cheap USB-MIDI cable on the way.",
+    build: () => { const ev = []; for (let i = 0; i < 2000; i++) { const t = i * 5, p = 36 + (i * 7) % 60; ev.push([t, [0x90, p, 30 + (i % 90)]]); ev.push([t + 3, [0x80, p, 0]]); } return sortSeq(ev); } },
+  { name: "Stuck note", desc: "a note that is never released, then silence",
+    exp: () => "One take, 1 note. It closes after gap_s; the player shows the note lasting to the end of the take.",
+    build: () => sortSeq([[0, [0x90, 57, 90]]]) },
+  { name: "Long take for a power cut", desc: "5 minutes of continuous notes, about 4 per second",
+    exp: () => "Pull the recorder's power about halfway, plug it back in. After restart one take is listed with the notes up to about 2 s before the cut, and it plays normally.",
+    build: () => { const ev = []; for (let t = 0, i = 0; t < 300000; t += 250, i++) { const p = 48 + ((i * 5) % 36); ev.push([t, [0x90, p, 50 + (i % 60)]]); ev.push([t + 220, [0x80, p, 0]]); } return sortSeq(ev); } },
+];
+const noteCount = sq => sq.filter(e => (e[1][0] & 0xF0) === 0x90 && e[1][2] > 0).length;
+function renderTests() {
+  $("#tests").innerHTML = TESTS.map((t, i) => `<tr><td><b>${t.name}</b><br><span class="status">${t.desc}</span></td><td class="exp">${t.exp()}</td><td class="act"><button data-i="${i}">Run</button></td></tr>`).join("");
+}
+$("#gap").onchange = renderTests;
+$("#tests").onclick = e => {
+  const b = e.target.closest("button[data-i]"); if (!b) return;
+  const t = TESTS[+b.dataset.i];
+  if (t.needsSysex && !(access && access.sysexEnabled)) { log(`"${t.name}": skipped, SysEx permission not granted`); return; }
+  const sq = t.build();
+  log(`test "${t.name}": ${sq.length} messages, ${noteCount(sq)} notes, ${Math.round(sq[sq.length - 1][0] / 1000)} s`);
+  start(sq, "test: " + t.name, () => log(`test "${t.name}": sent`));
+};
+
+renderTunes(); renderTests(); setTransport(TUNES[tuneKey].name);
+</script>
+</body>
+</html>

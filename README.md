@@ -13,6 +13,11 @@ updates go over Wi-Fi.
   [`docs/index.html`](docs/index.html)
 * **Try the web interface** with a few example takes, no hardware needed:
   [piotrjander.github.io/pianolog/demo.html](https://piotrjander.github.io/pianolog/demo.html)
+* **MIDI tester**: plays tunes and edge-case sequences (take gaps, pedal, 16 channels, SysEx,
+  bursts, stuck notes, power-cut take) into a MIDI output of your computer, with the expected
+  result for each: [piotrjander.github.io/pianolog/midi-tester.html](https://piotrjander.github.io/pianolog/midi-tester.html).
+  A laptop can't plug straight into the recorder (both are USB hosts); two USB-MIDI cables
+  joined by a DIN coupler make the bridge.
 
 > **Status: compiles and passes tests on a PC, but has never run on real hardware.**
 > Expect a first round of fixes once a board is on the bench. See [What is tested](#what-is-tested).
