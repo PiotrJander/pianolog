@@ -41,9 +41,11 @@ playback through the piano and a proper enclosure, buy a Jamcorder.
 | 4b | USB-A to USB-C *data* cable | For a piano with a USB-C socket. Charge-only cables won't work | 5 zł |
 | 4c | Class-compliant USB-MIDI interface cable (e.g. Roland UM-ONE mk2) | For an instrument with only round 5-pin MIDI sockets | 60–180 zł |
 
+| 5 | Enclosure (optional): 2 printed parts, 4 × M2 × 12 low-head screws, 4 × rubber feet Ø10 mm | See [case/](case/README.md); not test-fitted yet | depends on print |
+
 You need one of 4a/4b/4c. No soldering. The links and prices are from a Polish shop
 (Kamami, Waveshare's distributor there) in November 2026; the parts are generic and available
-everywhere. A 3D-printed case is not designed yet.
+everywhere.
 
 ## Hardware
 
@@ -224,6 +226,7 @@ main/web.c         HTTP server and API
 main/www/index.html the whole web UI: list, piano roll, WebAudio synth
 main/www/setup.html Wi-Fi setup page
 tools/ota.sh       sends a build over Wi-Fi
+case/              parametric 3D-printable enclosure (CadQuery) with STEP/3MF/STL exports
 test/host_test.c   unit tests: gcc -I../main host_test.c ../main/smf.c ../main/midi_parse.c
 test/archive_test.c archiver tests (see the comment at its top for how to build)
 ```

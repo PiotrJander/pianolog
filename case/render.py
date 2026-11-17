@@ -1,0 +1,86 @@
+"""Shaded preview images of the enclosure: a tiny z-buffer renderer (numpy only, no GPU)."""
+import os
+import numpy as np, trimesh
+from PIL import Image, ImageDraw, ImageFont
+import cadquery as cq
+
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
+S = 2                                    # supersampling
+
+def load(name, offset=(0, 0, 0)):
+    path = os.path.join(OUT, name)
+    if name.endswith(".step"):
+        stl = os.path.join(OUT, "_preview_" + os.path.basename(path)[:-5] + ".stl")
+        cq.exporters.export(cq.importers.importStep(path), stl, tolerance=0.05, angularTolerance=0.2)
+        path = stl
+    m = trimesh.load(path, force="mesh"); m.apply_translation(offset); return m
+
+def view_matrix(elev, azim):
+    e, a = np.radians(elev), np.radians(azim)
+    d = np.array([np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)])   # towards the camera
+    up = np.array([0, 0, 1.0]) if abs(e) < np.radians(89) else np.array([0, 1.0, 0])
+    r = np.cross(up, d); r /= np.linalg.norm(r); u = np.cross(d, r)
+    return np.stack([r, u, d]), d
+
+def render(parts, elev, azim, size=700, light=(-0.35, -0.55, 0.85)):
+    R, d = view_matrix(elev, azim)
+    allv = np.vstack([m.vertices for m, _ in parts])
+    c = (allv.max(0) + allv.min(0)) / 2
+    pv = (allv - c) @ R.T; span = np.abs(pv[:, :2]).max() * 1.12
+    W = size * S; scale = W / (2 * span)
+    img = np.full((W, W, 3), (233, 236, 238), float); zb = np.full((W, W), -np.inf)
+    L = np.array(light) / np.linalg.norm(light)
+    for m, base in parts:
+        P = (m.vertices - c) @ R.T
+        X = P[:, 0] * scale + W / 2; Y = W / 2 - P[:, 1] * scale; Z = P[:, 2]
+        n = m.face_normals
+        vis = n @ d > 0                                          # back-face culling
+        diff = np.clip(n @ L, 0, 1); spec = np.clip(n @ ((L + d) / np.linalg.norm(L + d)), 0, 1) ** 24
+        shade = (0.30 + 0.70 * diff)[:, None] * np.array(base) + (0.22 * spec)[:, None]
+        for f in np.nonzero(vis)[0]:
+            i0, i1, i2 = m.faces[f]
+            x = np.array([X[i0], X[i1], X[i2]]); y = np.array([Y[i0], Y[i1], Y[i2]]); z = np.array([Z[i0], Z[i1], Z[i2]])
+            xmin, xmax = max(int(x.min()), 0), min(int(x.max()) + 1, W - 1)
+            ymin, ymax = max(int(y.min()), 0), min(int(y.max()) + 1, W - 1)
+            if xmin > xmax or ymin > ymax: continue
+            den = (y[1] - y[2]) * (x[0] - x[2]) + (x[2] - x[1]) * (y[0] - y[2])
+            if abs(den) < 1e-9: continue
+            gx, gy = np.meshgrid(np.arange(xmin, xmax + 1) + 0.5, np.arange(ymin, ymax + 1) + 0.5)
+            w0 = ((y[1] - y[2]) * (gx - x[2]) + (x[2] - x[1]) * (gy - y[2])) / den
+            w1 = ((y[2] - y[0]) * (gx - x[2]) + (x[0] - x[2]) * (gy - y[2])) / den
+            w2 = 1 - w0 - w1
+            inside = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
+            if not inside.any(): continue
+            zz = w0 * z[0] + w1 * z[1] + w2 * z[2]
+            sub = zb[ymin:ymax + 1, xmin:xmax + 1]
+            upd = inside & (zz > sub)
+            sub[upd] = zz[upd]
+            img[ymin:ymax + 1, xmin:xmax + 1][upd] = np.clip(shade[f], 0, 1) * 255
+    im = Image.fromarray(img.astype(np.uint8)).resize((size, size), Image.LANCZOS)
+    return im
+
+def label(im, text):
+    d = ImageDraw.Draw(im)
+    try: f = ImageFont.truetype("/usr/share/fonts/opentype/inter/Inter-Medium.otf", 20)
+    except Exception: f = ImageFont.load_default()
+    d.text((18, 14), text, fill=(40, 44, 48), font=f); return im
+
+BLACK = (0.13, 0.13, 0.14); GREEN = (0.10, 0.34, 0.20)
+top, bottom = load("case_top.stl"), load("case_bottom.stl")
+views = [
+    ("view_front.png", [(top, BLACK), (bottom, BLACK)], 24, -115, "front: USB-A for the piano cable"),
+    ("view_back.png", [(top, BLACK), (bottom, BLACK)], 18, 65, "back: USB-C power, microSD with finger groove"),
+    ("view_top.png", [(top, BLACK)], 62, -100, "top: engraved wordmark"),
+    ("view_exploded.png", [(bottom, BLACK), (load("board.step", (0, 0, 14)), GREEN), (load("case_top.stl", (0, 0, 36)), BLACK)], 16, -120, "exploded: bottom, board, top"),
+    ("view_bottom.png", [(top, BLACK), (bottom, BLACK)], -40, -115, "underside: screws under the rubber feet"),
+]
+ims = []
+for fname, parts, el, az, title in views:
+    im = label(render(parts, el, az), title); im.save(os.path.join(OUT, fname)); ims.append(im)
+w = ims[0].width
+sheet = Image.new("RGB", (w * 2, w * 3), (233, 236, 238))
+for k, im in enumerate(ims): sheet.paste(im, ((k % 2) * w, (k // 2) * w))
+sheet.save(os.path.join(OUT, "overview.png"))
+for f in os.listdir(OUT):
+    if f.startswith("_preview_"): os.remove(os.path.join(OUT, f))
+print("ok")

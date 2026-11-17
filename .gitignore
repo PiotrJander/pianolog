@@ -7,3 +7,4 @@ test/stubs/archive_copy.c
 test/*.mid
 test/t/
 *.o
+case/__pycache__/
