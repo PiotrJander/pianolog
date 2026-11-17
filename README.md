@@ -1,5 +1,7 @@
 # pianolog
 
+[![build](https://github.com/PiotrJander/pianolog/actions/workflows/build.yml/badge.svg)](https://github.com/PiotrJander/pianolog/actions/workflows/build.yml)
+
 An always-on MIDI recorder for digital pianos, built on a Waveshare ESP32-P4-NANO board.
 Plug it into the piano and forget it: every take is saved as a Standard MIDI File, first in
 the board's own flash and then on a microSD card, and a small web page served by the device
@@ -226,6 +228,8 @@ test/archive_test.c archiver tests (see the comment at its top for how to build)
 Done on a PC:
 
 * Both firmware variants compile and link with ESP-IDF 5.5.6 for `esp32p4`, rollback enabled.
+  GitHub Actions rebuilds both variants and runs the host tests on every push; the images
+  are attached to each run as artifacts.
 * `test/host_test.c`: encoder, parser (running status, interleaved real-time bytes, SysEx,
   USB packets) and the repair scanner against every possible truncation point; the output
   files were read back with the independent `mido` library.

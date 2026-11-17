@@ -1,0 +1,55 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host-tests:
+    name: Host unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: MIDI encoder, parser and repair scanner
+        working-directory: test
+        run: |
+          gcc -Wall -Wextra -Werror -fsanitize=address,undefined -I../main \
+              host_test.c ../main/smf.c ../main/midi_parse.c -o host_test
+          ./host_test
+      - name: Flash-to-card archiver and ring buffer
+        working-directory: test
+        run: |
+          cp ../main/archive.c stubs/archive_copy.c
+          gcc -w -fsanitize=address,undefined -Istubs archive_test.c -o archive_test
+          ./archive_test
+
+  firmware:
+    name: Firmware (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    container: espressif/idf:release-v5.5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: rev3
+            defaults: sdkconfig.defaults
+          - variant: rev1
+            defaults: sdkconfig.defaults;sdkconfig.defaults.rev1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        run: |
+          git config --global --add safe.directory '*'
+          . "$IDF_PATH/export.sh"
+          idf.py -D "SDKCONFIG_DEFAULTS=${{ matrix.defaults }}" set-target esp32p4
+          idf.py build
+          idf.py merge-bin -o pianolog-p4-${{ matrix.variant }}.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pianolog-${{ matrix.variant }}
+          path: |
+            build/pianolog.bin
+            build/pianolog-p4-${{ matrix.variant }}.bin
+          retention-days: 14
