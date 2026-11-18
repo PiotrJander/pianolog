@@ -8,3 +8,4 @@ test/*.mid
 test/t/
 *.o
 case/__pycache__/
+sdkconfig.secrets

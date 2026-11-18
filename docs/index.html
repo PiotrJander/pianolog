@@ -191,7 +191,7 @@ wifi_pass=YourPassword</code></pre>
 <div class="caution"><b>Ready-made images use placeholder secrets</b>
 <p>The images in <code>firmware/</code> contain the update token <code>CHANGE-ME-ota-token</code> and the setup-network password <code>pianolog-setup</code>, both printed in this manual. They are fine for a first test. Before the recorder lives on a shared network, build your own with real values (below).</p></div>
 <div class="note"><b>Building it yourself</b>
-<p>Set your own update token, setup-network password and, if you like, a built-in home network in <code>sdkconfig.defaults</code> (the lines are marked "Fill these in"). Then install <a href="https://docs.espressif.com/projects/esp-idf/en/v5.5.3/esp32p4/get-started/index.html">ESP-IDF 5.5.3 or a later 5.5 release</a>, then run <code>idf.py set-target esp32p4</code> and <code>idf.py build flash monitor</code> in the project folder. The README explains the extra option for older chip revisions and the settings menu for pins.</p></div>
+<p>Set your own update token, setup-network password and, if you like, a built-in home network in <code>sdkconfig.secrets</code>: copy <code>sdkconfig.secrets.example</code> to that name and edit it. Git ignores the file, so real passwords stay out of the repository. Then install <a href="https://docs.espressif.com/projects/esp-idf/en/v5.5.3/esp32p4/get-started/index.html">ESP-IDF 5.5.3 or a later 5.5 release</a>, then run <code>idf.py set-target esp32p4</code> and <code>idf.py build flash monitor</code> in the project folder. The README explains the extra option for older chip revisions and the settings menu for pins.</p></div>
 
 <h2>5. Connect and use</h2>
 <ol class="steps">

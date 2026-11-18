@@ -91,7 +91,12 @@ green come out swapped (some PL9823 batches).
 
 ## Before the first build: secrets
 
-Edit these lines in `sdkconfig.defaults` (or set them in `idf.py menuconfig` -> `pianolog`):
+Real values go in `sdkconfig.secrets`, which git ignores; the committed `sdkconfig.defaults`
+keeps placeholders. The build applies the secrets file on top of the defaults when it exists:
+
+```
+cp sdkconfig.secrets.example sdkconfig.secrets   # then edit it
+```
 
 ```
 CONFIG_PL_WIFI_SSID="YOUR_WIFI_SSID"        # built-in home network (placeholder = none)
@@ -100,9 +105,14 @@ CONFIG_PL_AP_PASS="pianolog-setup"          # the recorder's own setup network, 
 CONFIG_PL_OTA_TOKEN="CHANGE-ME-ota-token"   # secret for updates over Wi-Fi; empty disables them
 ```
 
-Don't commit real values. The prebuilt images in `firmware/` contain exactly these
-placeholders, so anyone who reads this README knows their update token: build your own image
-before the recorder lives on a network you share.
+Defaults only fill in settings that the generated `sdkconfig` doesn't have yet. After changing
+the secrets file, delete `sdkconfig` (and `build_rev1/sdkconfig` for the other variant) and
+build again. Values set in `idf.py menuconfig` are also safe: they land in `sdkconfig`, which is
+gitignored too. Wi-Fi can also be set later from the recorder's setup page without rebuilding.
+
+The prebuilt images in `firmware/` contain exactly these placeholders, so anyone who reads this
+README knows their update token: build your own image before the recorder lives on a network
+you share. The secrets end up as plain text inside your own build, so don't publish it.
 
 ## Build and flash
 
