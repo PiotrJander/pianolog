@@ -3,6 +3,7 @@
 //   piano --USB--> Type-A port --+
 //                                +--> recorder --> flash /rec/<day>/<time>.mid --> card /rec/...
 //   piano --DIN--> optocoupler --+                         \__________ web page __________/
+//   optional RGB status light on a header GPIO (led.c)
 #include <stdlib.h>
 #include <time.h>
 #include "freertos/FreeRTOS.h"
@@ -49,6 +50,7 @@ void app_main(void)
     // On-board flash first: every take is recorded there, card or no card.
     flash_mount();
     recorder_start(boots);
+    led_start();                                // optional status light
     recorder_repair_dir(PL_REC_DIR);
 
     if (storage_mount() == ESP_OK) {

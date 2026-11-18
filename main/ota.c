@@ -27,6 +27,8 @@
 static const char *TAG = "ota";
 static volatile bool s_busy;
 
+bool ota_busy(void) { return s_busy; }
+
 #define HEALTH_TIMEOUT_S 120
 
 static bool token_ok(httpd_req_t *req)

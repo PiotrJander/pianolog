@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "esp_err.h"
 
-#define PL_VERSION     "0.2.0"
+#define PL_VERSION     "0.3.0"
 #define PL_MOUNT       "t/sdcard"
 #define PL_FLASH       "t/flash"
 #define PL_REC_DIR     PL_FLASH "/rec"      // takes are always recorded here first

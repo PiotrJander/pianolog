@@ -7,3 +7,4 @@ dependencies:
   espressif/mdns:
     version: ^1.4
   joltwallet/littlefs: ^1.14
+  espressif/led_strip: ^3.0

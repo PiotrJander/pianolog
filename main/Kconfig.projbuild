@@ -6,6 +6,24 @@ menu "pianolog"
         help
             UART RX pin fed by the H11L1 optocoupler. Any free header GPIO works.
 
+    config PL_LED_GPIO
+        int "GPIO driving the optional WS2812 status light, -1 to disable"
+        default 21
+        help
+            Data-in of one WS2812/WS2812B/SK6812 RGB LED. Power it from the header's 3V3 and GND.
+            With nothing connected the pin simply toggles into nothing.
+
+    config PL_LED_RGB_ORDER
+        bool "Status light expects RGB byte order (PL9823) instead of GRB (WS2812)"
+        default n
+        help
+            Turn on if red and green come out swapped.
+
+    config PL_LED_BRIGHTNESS
+        int "Status light brightness while recording (1-255; idle is about a fifth)"
+        range 1 255
+        default 60
+
     config PL_SD_LDO_CHAN
         int "On-chip LDO channel powering the SD card IO (0 = none)"
         default 4

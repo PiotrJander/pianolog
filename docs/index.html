@@ -89,7 +89,7 @@ footer{margin-top:44px;padding-top:14px;border-top:3px solid var(--ink);font-siz
 <div class="sheet">
 
 <header class="cover">
-  <div class="docno">Build manual · firmware 0.2.0 · rev C · 17 Nov 2026</div>
+  <div class="docno">Build manual · firmware 0.3.0 · rev D · 18 Nov 2026</div>
   <h1>pianolog: an always-on MIDI recorder</h1>
   <p class="lede">A small box that stays plugged into a digital piano, saves every take as a MIDI file in its own memory and on a memory card, and serves a web page where you browse and play them from your phone. After the first setup it updates over Wi-Fi.</p>
 </header>
@@ -154,6 +154,8 @@ footer{margin-top:44px;padding-top:14px;border-top:3px solid var(--ink);font-siz
 <tr><td class="n">4a</td><td>Piano with a square USB-B socket (USB TO HOST)</td><td><a href="https://kamami.pl/en/usb-cables/587699-cabel-usb-a-usb-b-20-3m-black-ferrite-lanberg-5901969413502.html">USB-A to USB-B cable, Lanberg, 3 m</a>. The same series exists in 0.5 m</td><td class="p">10–15 zł</td></tr>
 <tr><td class="n">4b</td><td>Piano with a USB-C socket</td><td>A second <a href="https://kamami.pl/en/usb-cables/1178168-usb-type-a-cable-usb-type-c-1m-black.html">USB-A to USB-C cable</a>. It must carry data, as this one does; charge-only cables will not work</td><td class="p">5 zł</td></tr>
 <tr><td class="n">4c</td><td>Instrument with only round 5-pin MIDI sockets</td><td>Class-compliant USB-MIDI interface cable (DIN plugs to USB-A), for example Roland UM-ONE mk2. Sold by music shops, not by Kamami</td><td class="p">60–180 zł</td></tr>
+<tr class="sub"><td colspan="4">Optional extra</td></tr>
+<tr><td class="n">6</td><td>Status light</td><td>One 5 mm through-hole addressable RGB LED, WS2812D-F5 (PL9823-F5 also works), diffused, plus 3 female-female jumper wires. Everything works without it</td><td class="p">2–5 zł</td></tr>
 </tbody>
 </table>
 </div>
@@ -199,6 +201,19 @@ wifi_pass=YourPassword</code></pre>
 <li><div><p>With the phone back on your home Wi-Fi, open <code>http://pianolog.local</code>.</p></div></li>
 <li><div><p>Tap a take to see its piano roll and hear it through the phone. <em>Download</em> saves the MIDI file. The star marks takes worth keeping.</p></div></li>
 </ol>
+<h3>Status light (optional)</h3>
+<p>Push three female jumper wires onto the LED's legs and onto the header pins labelled <strong>GPIO21</strong> (the LED's data in, <code>DI</code>), <strong>3V3</strong> (<code>VDD</code>) and <strong>GND</strong>. The fourth leg (<code>DO</code>) stays free. Leg order differs between makers, so follow the seller's pinout, and cover the bare legs with heat-shrink or tape.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Light</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>dim warm white</td><td>idle, card in, Wi-Fi connected</td></tr>
+<tr><td>dim yellow</td><td>idle without a card; takes stay in internal memory</td></tr>
+<tr><td>red</td><td>recording</td></tr>
+<tr><td>idle colour, slow blink</td><td>Wi-Fi not connected yet</td></tr>
+<tr><td>cyan, slow blink</td><td>setup network <code>pianolog</code> is up</td></tr>
+<tr><td>blue, fast blink</td><td>firmware update in progress; don't unplug</td></tr>
+<tr><td>magenta, fast blink</td><td>internal memory failed</td></tr>
+</tbody></table></div>
 <h3>How it decides what a take is</h3>
 <ul class="plain">
 <li>A take starts with the first key you press and ends after 60 seconds of silence. Change <code>gap_s</code> in <code>pianolog.txt</code> to taste.</li>
@@ -261,7 +276,7 @@ wifi_pass=YourPassword</code></pre>
 </div>
 <p style="margin-top:14px">A printed case is deliberately left out of this revision. Clone and batch differences move connectors by a millimetre or two, so the case should be drawn from caliper measurements of the board you receive.</p>
 
-<footer>pianolog 0.2.0 · board: Waveshare ESP32-P4-NANO · source and firmware: <a href="https://github.com/PiotrJander/pianolog">github.com/PiotrJander/pianolog</a></footer>
+<footer>pianolog 0.3.0 · board: Waveshare ESP32-P4-NANO · source and firmware: <a href="https://github.com/PiotrJander/pianolog">github.com/PiotrJander/pianolog</a></footer>
 </div>
 </body>
 </html>

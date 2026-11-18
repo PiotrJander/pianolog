@@ -40,8 +40,8 @@ playback through the piano and a proper enclosure, buy a Jamcorder.
 | 4a | USB-A to USB-B cable | For a piano with a square **USB TO HOST** socket (most current models) | 10–15 zł |
 | 4b | USB-A to USB-C *data* cable | For a piano with a USB-C socket. Charge-only cables won't work | 5 zł |
 | 4c | Class-compliant USB-MIDI interface cable (e.g. Roland UM-ONE mk2) | For an instrument with only round 5-pin MIDI sockets | 60–180 zł |
-
 | 5 | Enclosure (optional): 2 printed parts, 4 × M2 × 12 low-head screws, 4 × rubber feet Ø10 mm | See [case/](case/README.md); not test-fitted yet | depends on print |
+| 6 | Status light (optional): one 5 mm through-hole addressable RGB LED, WS2812D-F5 (PL9823-F5 also works), diffused, plus 3 female-female jumper wires | See [Status light](#status-light). Everything works without it | 2–5 zł + jumpers |
 
 You need one of 4a/4b/4c. No soldering. The links and prices are from a Polish shop
 (Kamami, Waveshare's distributor there) in November 2026; the parts are generic and available
@@ -54,11 +54,40 @@ everywhere.
 | Piano (USB)         | Type-A port (ESP32-P4 high-speed USB host)                         |
 | Piano (5-pin DIN)   | H11L1 optocoupler output -> GPIO20 (UART1 RX, 31250 baud), optional |
 | Storage             | 16 MB on-board flash (about 9.9 MB for takes) + microSD, FAT32     |
+| Status light        | WS2812 data in -> GPIO21, power from the header's 3V3 and GND, optional |
 | Wi-Fi               | on-board ESP32-C6 over SDIO (GPIO14-19, reset GPIO54), esp_hosted  |
 | Power, flashing     | USB-C port                                                         |
 
 Both inputs are recorded into the same take. A DIN-only instrument also works without any
 soldering through a class-compliant USB-MIDI cable plugged into the Type-A port.
+
+### Status light
+
+One addressable RGB LED shows what the recorder is doing. It is optional: the firmware drives
+the pin whether or not anything is connected, so a board without the LED behaves the same.
+
+| Light | Meaning |
+|-------|---------|
+| dim warm white, steady | idle, card in, Wi-Fi connected |
+| dim yellow, steady | idle without a card: takes go to internal memory, oldest overwritten when full |
+| red, steady | recording a take |
+| idle colour, blinking slowly | Wi-Fi not connected (still trying) |
+| cyan, blinking slowly | the setup network `pianolog` is up: join it and open `http://192.168.4.1/setup` |
+| blue, blinking fast | firmware update in progress; don't unplug |
+| magenta, blinking fast | internal memory failed; nothing can be recorded |
+
+Recording shows red whatever the Wi-Fi or card state; an update or a fault overrides recording.
+
+Wiring, no soldering: push three female jumper wires onto the LED's legs and onto the header
+pins labelled **GPIO21** (data in, `DI`/`DIN`), **3V3** (`VDD`) and **GND**. The fourth leg (`DO`)
+stays free. Leg order differs between makers, so go by the seller's pinout, and slip a bit of
+heat-shrink or tape over the bare legs so they can't touch. 3.3 V supply keeps the data level
+in spec and is plenty at these brightness levels (Waveshare runs the WS2812B on its own P4
+board the same way).
+
+Settings in `idf.py menuconfig` -> `pianolog`: `PL_LED_GPIO` (-1 turns the light off),
+`PL_LED_BRIGHTNESS` (1-255, default 60; idle is about a fifth) and `PL_LED_RGB_ORDER` if red and
+green come out swapped (some PL9823 batches).
 
 ## Before the first build: secrets
 
@@ -221,6 +250,8 @@ main/recorder.c    take detection, safe writing, repair
 main/archive.c     flash -> card mover, ring buffer without a card
 main/storage.c     on-board flash (LittleFS) and microSD
 main/ota.c         updates over Wi-Fi, rollback guard
+main/led.c         optional RGB status light (WS2812 via RMT)
+main/led_pattern.* state -> colour/blink logic                  (portable, host-tested)
 main/net.c         Wi-Fi station / fallback access point, NTP, mDNS
 main/web.c         HTTP server and API
 main/www/index.html the whole web UI: list, piano roll, WebAudio synth
@@ -229,6 +260,7 @@ tools/ota.sh       sends a build over Wi-Fi
 case/              parametric 3D-printable enclosure (CadQuery) with STEP/3MF/STL exports
 test/host_test.c   unit tests: gcc -I../main host_test.c ../main/smf.c ../main/midi_parse.c
 test/archive_test.c archiver tests (see the comment at its top for how to build)
+test/led_test.c    status light: gcc -I../main led_test.c ../main/led_pattern.c
 ```
 
 ## What is tested
@@ -244,6 +276,9 @@ Done on a PC:
 * `test/archive_test.c`: moving takes to a card, recovery from a cut before and after the
   rename, a name clash, and the ring buffer (oldest first, starred last, live take kept,
   disabled with a card).
+* `test/led_test.c`: the status light's colour and blink for every state, including the
+  priorities (update and fault over recording, recording over Wi-Fi and card) and the lowest
+  brightness setting. Both firmware variants also build with the light turned off.
 * The web pages in headless Chrome at phone size against a mock of the API: listing,
   playback, starring, the Wi-Fi setup form with awkward names and passwords.
 
@@ -251,7 +286,8 @@ Not tested, because no board was available:
 
 * Everything that touches the hardware: USB enumeration of a real piano, 5 V on the Type-A
   port, the SD power assumptions (on-chip LDO channel 4 plus GPIO45 driven low), the link to
-  the ESP32-C6, scanning while the setup network is up, an actual update and rollback.
+  the ESP32-C6, scanning while the setup network is up, an actual update and rollback,
+  the status light's real colours and the GPIO21 choice.
 * If the factory C6 firmware is much older than the esp_hosted host driver pulled in by this
   build, Wi-Fi may not start until the C6 is updated (see the esp_hosted documentation).
   Recording does not depend on it, but a freshly updated image that cannot bring up Wi-Fi

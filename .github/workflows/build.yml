@@ -23,6 +23,11 @@ jobs:
           cp ../main/archive.c stubs/archive_copy.c
           gcc -w -fsanitize=address,undefined -Istubs archive_test.c -o archive_test
           ./archive_test
+      - name: Status light colours
+        working-directory: test
+        run: |
+          gcc -Wall -Werror -fsanitize=address,undefined -I../main led_test.c ../main/led_pattern.c -o led_test
+          ./led_test
 
   firmware:
     name: Firmware (${{ matrix.variant }})
