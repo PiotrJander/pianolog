@@ -16,6 +16,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_app_desc.h"
+#include "esp_app_format.h"
+#include "esp_hosted.h"
+#include "esp_hosted_ota.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
@@ -119,6 +122,93 @@ int ota_post_handler(httpd_req_t *req)
     reply(req, "200 OK", "ok, restarting; if the new firmware does not come up it rolls back by itself\n");
     xTaskCreate(restart_task, "ota_restart", 3072, NULL, 5, NULL);
     return ESP_OK;
+}
+
+// ---- Wi-Fi co-processor (ESP32-C6) -----------------------------------------------------
+//
+//   curl -H "X-Update-Token: <token>" --data-binary @network_adapter.bin http://pianolog.local/api/update-wifi
+//
+// Streams an esp_hosted slave image to the C6 over the same SDIO link it serves Wi-Fi on.
+// The C6 writes it into its inactive slot and checks it there, so an interrupted or bad upload
+// leaves the old Wi-Fi firmware running. Afterwards this board restarts too, so both sides
+// come up together and agree on the protocol.
+
+#define C6_CHUNK 1400
+
+static bool fw_at_least(const esp_hosted_coprocessor_fwver_t *v, uint32_t a, uint32_t b)
+{
+    return v->major1 > a || (v->major1 == a && v->minor1 >= b);
+}
+
+int ota_wifi_post_handler(httpd_req_t *req)
+{
+    if (!token_ok(req)) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        return reply(req, "401 Unauthorized", "missing or wrong X-Update-Token\n");
+    }
+    if (s_busy) return reply(req, "409 Conflict", "an update is already running\n");
+    if (req->content_len < sizeof(esp_image_header_t) || req->content_len > 1920 * 1024)
+        return reply(req, "413 Payload Too Large", "image is empty or larger than the C6 app slot\n");
+
+    char *buf = malloc(C6_CHUNK);
+    if (!buf) return reply(req, "500 Internal Server Error", "out of memory\n");
+
+    // Look at the header before touching the C6: catches the P4 image sent here by mistake.
+    size_t got = 0;
+    while (got < sizeof(esp_image_header_t)) {
+        int r = httpd_req_recv(req, buf + got, C6_CHUNK - got);
+        if (r <= 0) { free(buf); return reply(req, "400 Bad Request", "upload interrupted\n"); }
+        got += (size_t)r;
+    }
+    const esp_image_header_t *hdr = (const esp_image_header_t *)buf;
+    if (hdr->magic != ESP_IMAGE_HEADER_MAGIC || hdr->chip_id != ESP_CHIP_ID_ESP32C6) {
+        free(buf);
+        return reply(req, "400 Bad Request", "not an ESP32-C6 app image (use the esp_hosted slave build)\n");
+    }
+
+    esp_hosted_coprocessor_fwver_t before = {0};
+    esp_hosted_get_coprocessor_fwversion(&before);
+    ESP_LOGI(TAG, "Wi-Fi chip runs %u.%u.%u, receiving %u bytes for it",
+             (unsigned)before.major1, (unsigned)before.minor1, (unsigned)before.patch1,
+             (unsigned)req->content_len);
+
+    s_busy = true;
+    esp_err_t err = esp_hosted_slave_ota_begin();
+    size_t left = req->content_len;
+    int timeouts = 0;
+    while (err == ESP_OK) {
+        err = esp_hosted_slave_ota_write((uint8_t *)buf, got);
+        left -= got;
+        if (err != ESP_OK || left == 0) break;
+        int r = httpd_req_recv(req, buf, left < C6_CHUNK ? left : C6_CHUNK);
+        if (r == HTTPD_SOCK_ERR_TIMEOUT && ++timeouts < 5) { got = 0; continue; }
+        if (r <= 0) { err = ESP_FAIL; break; }
+        timeouts = 0;
+        got = (size_t)r;
+    }
+    free(buf);
+    if (err == ESP_OK) err = esp_hosted_slave_ota_end();     // the C6 verifies the image here
+    if (err != ESP_OK) {
+        s_busy = false;
+        ESP_LOGW(TAG, "Wi-Fi chip update failed: %s", esp_err_to_name(err));
+        return reply(req, "400 Bad Request", "Wi-Fi chip update failed; it keeps its old firmware\n");
+    }
+    // Firmware from 2.6 on waits for an explicit switch; older firmware switched in ota_end.
+    if (fw_at_least(&before, 2, 6)) {
+        err = esp_hosted_slave_ota_activate();
+        if (err != ESP_OK) ESP_LOGW(TAG, "activate: %s", esp_err_to_name(err));
+    }
+    ESP_LOGI(TAG, "Wi-Fi chip firmware written");
+    reply(req, "200 OK", "ok, Wi-Fi chip updated; restarting\n");
+    xTaskCreate(restart_task, "ota_restart", 3072, NULL, 5, NULL);
+    return ESP_OK;
+}
+
+void ota_log_coprocessor_version(void)
+{
+    esp_hosted_coprocessor_fwver_t v = {0};
+    if (esp_hosted_get_coprocessor_fwversion(&v) == ESP_OK)
+        ESP_LOGI(TAG, "Wi-Fi chip firmware %u.%u.%u", (unsigned)v.major1, (unsigned)v.minor1, (unsigned)v.patch1);
 }
 
 // ---- rollback guard ---------------------------------------------------------------------

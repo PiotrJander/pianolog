@@ -164,7 +164,7 @@ footer{margin-top:44px;padding-top:14px;border-top:3px solid var(--ink);font-siz
 <p>Kamami is Waveshare's distributor in Poland, so the board and both plain cables can go in one order. The board's listed price moved between 83 and 88 zł while this manual was written and the cable prices are shown without VAT; stock counts were not readable, so check them at checkout.</p></div>
 
 <h2>3. Prepare the memory card (optional)</h2>
-<p>The recorder works without a card: takes are always recorded into the board's own memory first. A card is the long-term archive, and takes are moved onto it automatically.</p>
+<p>The recorder works without a card: takes are always recorded into the board's own memory first. A card is the long-term archive, and takes are moved onto it automatically. The card is only looked for at power-on: after inserting one, unplug the recorder and plug it back in.</p>
 <ol class="steps">
 <li><div><p>Format the card as <strong>FAT32</strong>. Cards up to 32 GB come that way. A 64 GB card arrives as exFAT, which the recorder cannot read, and needs reformatting.</p></div></li>
 <li><div><p>Optionally, create a text file named <code>pianolog.txt</code> in the top folder of the card with your home Wi-Fi:</p>
@@ -199,7 +199,7 @@ wifi_pass=YourPassword</code></pre>
 <li><div><p>Play something, then stop for a minute.</p></div></li>
 <li><div><p>The first time, about 30 seconds after power-on, the recorder opens its own Wi-Fi network called <code>pianolog</code>. Join it from your phone with the password <code>pianolog-setup</code> (or your own, if you built the firmware yourself), open <code>http://192.168.4.1/setup</code>, choose your home network and type its password. The recorder joins it and closes its own network about 15 seconds later. It does the same whenever it cannot reach any known network.</p></div></li>
 <li><div><p>With the phone back on your home Wi-Fi, open <code>http://pianolog.local</code>.</p></div></li>
-<li><div><p>Tap a take to see its piano roll and hear it through the phone. <em>Download</em> saves the MIDI file. The star marks takes worth keeping.</p></div></li>
+<li><div><p>Tap a take to hear it through the phone and watch the notes fall onto a keyboard; drag the notes to move through it. <em>Download</em> saves the MIDI file. The star marks takes worth keeping.</p></div></li>
 </ol>
 <h3>Status light (optional)</h3>
 <p>Push three female jumper wires onto the LED's legs and onto the header pins labelled <strong>GPIO21</strong> (the LED's data in, <code>DI</code>), <strong>3V3</strong> (<code>VDD</code>) and <strong>GND</strong>. The fourth leg (<code>DO</code>) stays free. Leg order differs between makers, so follow the seller's pinout, and cover the bare legs with heat-shrink or tape.</p>

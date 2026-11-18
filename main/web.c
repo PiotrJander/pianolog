@@ -71,6 +71,38 @@ static esp_err_t root_get(httpd_req_t *req)
     return httpd_resp_send(req, index_html_start, index_html_end - index_html_start - 1);
 }
 
+// ---- GET /fonts/<name>.woff2 -------------------------------------------------------------
+// Cormorant Garamond and EB Garamond (SIL Open Font License), latin subset, kept on the
+// device so the page looks the same on the recorder's own network, which has no internet.
+
+extern const uint8_t cormorant_start[] asm("_binary_cormorant_woff2_start");
+extern const uint8_t cormorant_end[] asm("_binary_cormorant_woff2_end");
+extern const uint8_t cormorant_italic_start[] asm("_binary_cormorant_italic_woff2_start");
+extern const uint8_t cormorant_italic_end[] asm("_binary_cormorant_italic_woff2_end");
+extern const uint8_t garamond_start[] asm("_binary_garamond_woff2_start");
+extern const uint8_t garamond_end[] asm("_binary_garamond_woff2_end");
+extern const uint8_t garamond_italic_start[] asm("_binary_garamond_italic_woff2_start");
+extern const uint8_t garamond_italic_end[] asm("_binary_garamond_italic_woff2_end");
+
+static esp_err_t font_get(httpd_req_t *req)
+{
+    static const struct { const char *name; const uint8_t *start, *end; } fonts[] = {
+        { "cormorant.woff2",        cormorant_start,        cormorant_end },
+        { "cormorant-italic.woff2", cormorant_italic_start, cormorant_italic_end },
+        { "garamond.woff2",         garamond_start,         garamond_end },
+        { "garamond-italic.woff2",  garamond_italic_start,  garamond_italic_end },
+    };
+    const char *name = req->uri + strlen("/fonts/");
+    for (size_t i = 0; i < sizeof fonts / sizeof fonts[0]; i++) {
+        if (strcmp(name, fonts[i].name) == 0) {
+            httpd_resp_set_type(req, "font/woff2");
+            httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=31536000, immutable");
+            return httpd_resp_send(req, (const char *)fonts[i].start, fonts[i].end - fonts[i].start);
+        }
+    }
+    return httpd_resp_send_404(req);
+}
+
 // ---- GET /api/status --------------------------------------------------------------------
 
 static esp_err_t status_get(httpd_req_t *req)
@@ -417,7 +449,7 @@ void web_start(void)
 {
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
-    cfg.max_uri_handlers = 16;
+    cfg.max_uri_handlers = 22;
     cfg.stack_size = 8192;
     cfg.lru_purge_enable = true;
     httpd_handle_t srv;
@@ -438,6 +470,10 @@ void web_start(void)
         { .uri = "/api/scan",    .method = HTTP_GET,  .handler = scan_get },
         { .uri = "/api/wifi",    .method = HTTP_POST, .handler = wifi_post },
         { .uri = "/api/update",  .method = HTTP_POST, .handler = ota_post_handler },
+        { .uri = "/api/update-wifi", .method = HTTP_POST, .handler = ota_wifi_post_handler },
+        { .uri = "/api/log",     .method = HTTP_GET,  .handler = log_get_handler },
+        { .uri = "/log",         .method = HTTP_GET,  .handler = log_page_handler },
+        { .uri = "/fonts/*",     .method = HTTP_GET,  .handler = font_get },
     };
     for (size_t i = 0; i < sizeof routes / sizeof routes[0]; i++) httpd_register_uri_handler(srv, &routes[i]);
 }

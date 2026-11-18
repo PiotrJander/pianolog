@@ -19,8 +19,8 @@ updates go over Wi-Fi.
   A laptop can't plug straight into the recorder (both are USB hosts); two USB-MIDI cables
   joined by a DIN coupler make the bridge.
 
-> **Status: compiles and passes tests on a PC, but has never run on real hardware.**
-> Expect a first round of fixes once a board is on the bench. See [What is tested](#what-is-tested).
+> **Status: runs on a real board (boots, joins Wi-Fi, updates itself and its Wi-Fi chip over
+> Wi-Fi), but has not yet recorded a real piano.** See [What is tested](#what-is-tested).
 
 ## Inspiration
 
@@ -171,6 +171,39 @@ curl -H "X-Update-Token: <token>" --data-binary @build/pianolog.bin http://piano
   each other. Home networks do; guest, hotel and office networks often isolate clients.
 * Use the image built for your chip revision; a wrong one is rejected or rolled back.
 
+### Wi-Fi chip firmware
+
+The ESP32-C6 that provides Wi-Fi runs its own firmware (esp_hosted), which should match the
+esp_hosted version in this build. Boards ship with an old one; the boot log then says
+`Version mismatch: Host [2.13.0] > Co-proc [0.0.0]`. Update it over Wi-Fi, no extra cable:
+
+```sh
+tools/ota.sh firmware/wifi-c6-esp-hosted-2.13.1.bin   # -> /api/update-wifi
+```
+
+`tools/ota.sh` recognises a C6 image by its header and sends it to `/api/update-wifi`. The C6
+writes it into its spare slot and checks it, so a broken upload leaves the old Wi-Fi
+firmware in place; afterwards both chips restart. The image is the `slave/` project of the
+esp_hosted component, built for `esp32c6` with ESP-IDF 5.5.6 (`idf.py set-target esp32c6 build`
+in a copy of `managed_components/espressif__esp_hosted/slave`, output
+`build/network_adapter.bin`). Rebuild it after bumping esp_hosted in `main/idf_component.yml`.
+
+## Logs over Wi-Fi
+
+Every log line also goes into a 16 kB buffer you can read over the network, like
+`esphome logs`:
+
+```sh
+tools/logs.sh                    # follows http://pianolog.local/api/log, Ctrl-C to stop
+tools/logs.sh 192.168.4.1        # on the recorder's own network
+```
+
+or open `http://pianolog.local/log` in a browser. The buffer survives restarts (not power
+cuts), so after an update, crash or watchdog reset the lines leading up to it are still there,
+followed by a `----- crash -----` style marker. A crash backtrace itself only goes to the
+USB serial port. The log has no password, like the rest of the page; it shows network names
+and addresses but never Wi-Fi passwords or the update token.
+
 ## Settings and Wi-Fi
 
 Networks are tried in this order, two attempts each:
@@ -225,7 +258,15 @@ card   /rec/unsynced/b0042-001_0090s_0200n.mid          recorded before the cloc
 * **No card.** Takes stay in flash, roughly 50+ hours of dense playing. When less than 512 kB is
   left, the oldest takes are deleted until 1 MB is free; starred takes only when nothing
   else is left, and never the take being recorded. With a card in, nothing is deleted.
-  Insert a card later and everything in flash is moved over.
+  Insert a card later and power-cycle the recorder: everything in flash is moved over. The
+  card is only looked for at power-on, because probing it while Wi-Fi is busy crashes the
+  link to the Wi-Fi chip (both share one SD controller).
+
+* **Examples.** A new recorder (or one updated to 0.5.1) adds three short public-domain
+  pieces to an `examples` folder once, so the page has something to play from the start: the
+  opening of Für Elise, the first part of the Rondo alla turca and the first bars of Bach's
+  Prelude in C. They were entered by hand in `tools/make-examples.py`, not copied from a MIDI
+  file. Delete them like any take; they don't come back.
 
 ## HTTP API
 
@@ -243,6 +284,9 @@ card   /rec/unsynced/b0042-001_0090s_0200n.mid          recorded before the cloc
 | GET    | `/api/scan`                            | nearby networks (setup network only) |
 | POST   | `/api/wifi` (form: `ssid`, `pass`)     | saves a network (setup network only) |
 | POST   | `/api/update` + `X-Update-Token`       | firmware update, then restart        |
+| POST   | `/api/update-wifi` + `X-Update-Token`  | Wi-Fi chip (ESP32-C6) update, restart |
+| GET    | `/api/log?since=N`                     | log text after byte N; `X-Log-Next` header |
+| GET    | `/log`                                 | page that follows the log            |
 
 Takes listed by `/api/list` carry `"where":"flash"` or `"where":"card"`.
 Apart from the update token, there is no authentication: anyone on the same network can
@@ -259,14 +303,20 @@ main/smf.*         MIDI file encoder and crash-repair scanner    (portable, host
 main/recorder.c    take detection, safe writing, repair
 main/archive.c     flash -> card mover, ring buffer without a card
 main/storage.c     on-board flash (LittleFS) and microSD
-main/ota.c         updates over Wi-Fi, rollback guard
+main/ota.c         updates over Wi-Fi (app and Wi-Fi chip), rollback guard
+main/logbuf.c      log ring buffer behind /api/log, kept across restarts
+main/examples.c    writes the example takes into flash on first boot
+main/examples/     the example takes, made by tools/make-examples.py
 main/led.c         optional RGB status light (WS2812 via RMT)
 main/led_pattern.* state -> colour/blink logic                  (portable, host-tested)
 main/net.c         Wi-Fi station / fallback access point, NTP, mDNS
 main/web.c         HTTP server and API
-main/www/index.html the whole web UI: list, piano roll, WebAudio synth
+main/www/index.html the whole web UI: list, falling notes onto a keyboard, WebAudio synth
+main/www/fonts/     Cormorant Garamond and EB Garamond (SIL OFL 1.1), served from the device
 main/www/setup.html Wi-Fi setup page
-tools/ota.sh       sends a build over Wi-Fi
+tools/ota.sh       sends a build (or a Wi-Fi chip image) over Wi-Fi
+tools/logs.sh      follows the log over Wi-Fi
+tools/make-demo.sh rebuilds docs/demo.html from the device page and docs/demo-shim.js
 case/              parametric 3D-printable enclosure (CadQuery) with STEP/3MF/STL exports
 test/host_test.c   unit tests: gcc -I../main host_test.c ../main/smf.c ../main/midi_parse.c
 test/archive_test.c archiver tests (see the comment at its top for how to build)
@@ -294,14 +344,11 @@ Done on a PC:
 
 Not tested, because no board was available:
 
-* Everything that touches the hardware: USB enumeration of a real piano, 5 V on the Type-A
-  port, the SD power assumptions (on-chip LDO channel 4 plus GPIO45 driven low), the link to
-  the ESP32-C6, scanning while the setup network is up, an actual update and rollback,
-  the status light's real colours and the GPIO21 choice.
-* If the factory C6 firmware is much older than the esp_hosted host driver pulled in by this
-  build, Wi-Fi may not start until the C6 is updated (see the esp_hosted documentation).
-  Recording does not depend on it, but a freshly updated image that cannot bring up Wi-Fi
-  is rolled back after 120 s by design.
+* Tried on a board (rev 3.1): boot, joining home Wi-Fi, updates over Wi-Fi with confirmation,
+  updating the C6 from its factory firmware (reports 0.0.0) to 2.13.1, logs over Wi-Fi.
+* Not yet: USB enumeration of a real piano, 5 V on the Type-A port, the SD power assumptions
+  (on-chip LDO channel 4 plus GPIO45 driven low) with a card inserted, scanning while the
+  setup network is up, an actual rollback, the status light's real colours and the GPIO21 choice.
 * Timing accuracy, long-run stability, card removal while running.
 
 ## Known limits

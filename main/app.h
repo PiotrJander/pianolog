@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "esp_err.h"
 
-#define PL_VERSION     "0.3.0"
+#define PL_VERSION     "0.5.1"
 #define PL_MOUNT       "/sdcard"
 #define PL_FLASH       "/flash"
 #define PL_REC_DIR     PL_FLASH "/rec"      // takes are always recorded here first
@@ -95,6 +95,12 @@ struct httpd_req;
 int ota_post_handler(struct httpd_req *req);  // POST /api/update
 void ota_confirm_when_healthy(void);          // rollback guard for a freshly updated image
 bool ota_busy(void);                          // receiving an update or restarting into it
+int ota_wifi_post_handler(struct httpd_req *req); // POST /api/update-wifi (ESP32-C6 image)
+void ota_log_coprocessor_version(void);
+void examples_install(void);                  // first boot: example takes into flash
+void logbuf_start(void);                       // copy log lines into a ring for /api/log
+int log_get_handler(struct httpd_req *req);   // GET /api/log?since=N
+int log_page_handler(struct httpd_req *req);  // GET /log
 
 // ---- led.c ----------------------------------------------------------------------------
 // Optional RGB status light (WS2812 on CONFIG_PL_LED_GPIO). Harmless when nothing is wired.

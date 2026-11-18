@@ -272,6 +272,7 @@ void net_start(void)
     err = esp_wifi_start();
     if (err != ESP_OK) { ESP_LOGE(TAG, "esp_wifi_start: %s", esp_err_to_name(err)); return; }
     s_wifi_ok = true;
+    ota_log_coprocessor_version();
     s_down_since = esp_timer_get_time();
     if (s_ncand == 0) set_ap(true);
 

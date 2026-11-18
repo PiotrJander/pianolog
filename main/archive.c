@@ -174,14 +174,14 @@ static void archive_pass(void)
     }
     free(b1);
     free(b2);
-    // A failed copy usually means the card was pulled out: drop it, main.c remounts it later.
+    // A failed copy usually means the card was pulled out: drop it until the next power-on.
     if (!card_ok) storage_unmount();
 }
 
 static void archive_task(void *arg)
 {
     for (;;) {
-        // Wake on a kick, or every 30 s to notice a card that was just inserted.
+        // Wake on a kick (take closed), or every 30 s as a safety net.
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30000));
         vTaskDelay(pdMS_TO_TICKS(1000));
         archive_pass();

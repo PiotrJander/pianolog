@@ -3,68 +3,142 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14110f">
+<meta name="theme-color" content="#fcfaf5">
 <title>pianolog</title>
 <link rel="icon" href="data:,">
+<link rel="preload" href="fonts/cormorant.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/garamond.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-:root{--bg:#14110f;--panel:#1d1916;--line:#2e2823;--ink:#efe8df;--dim:#9a8f83;--accent:#e8a33d;--live:#e5533d;--ok:#7fb069}
+@font-face{font-family:"Cormorant Garamond";src:url(fonts/cormorant.woff2) format("woff2");font-weight:400 600;font-style:normal;font-display:swap}
+@font-face{font-family:"Cormorant Garamond";src:url(fonts/cormorant-italic.woff2) format("woff2");font-weight:400 600;font-style:italic;font-display:swap}
+@font-face{font-family:"EB Garamond";src:url(fonts/garamond.woff2) format("woff2");font-weight:400 600;font-style:normal;font-display:swap}
+@font-face{font-family:"EB Garamond";src:url(fonts/garamond-italic.woff2) format("woff2");font-weight:400 600;font-style:italic;font-display:swap}
+:root{
+  --ground:#fcfaf5;--paper:#f6f1e6;--ivory:#fffdf8;--ink:#1d1b18;--body:#2a2722;--soft:#4a453c;--quiet:#6f675a;
+  --hair:#d3cab8;--faint:#e8e1d2;--red:#b3381e;--blue:#2b4c8c;--ochre:#9a7419;
+  --edge:rgba(60,50,30,.12);--shade:rgba(120,100,60,.07);
+  --display:"Cormorant Garamond","Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --text:"EB Garamond","Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  color-scheme:light;
+}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-body{padding:0 0 calc(env(safe-area-inset-bottom) + 24px)}
-body.playing{padding-bottom:330px}
-header{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px 10px}
-h1{margin:0 0 8px;font-size:20px;font-weight:650;letter-spacing:.2px}
-h1 span{color:var(--accent)}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--line);color:var(--dim);white-space:nowrap}
-a.chip{text-decoration:none}
-.chip.ok{color:var(--ok)} .chip.warn{color:var(--accent)} .chip.rec{color:#fff;background:var(--live);border-color:var(--live)}
-main{max-width:720px;margin:0 auto;padding:4px 12px}
-.day{margin-top:14px}
-.day>button{all:unset;display:flex;width:100%;justify-content:space-between;align-items:baseline;padding:8px 4px;cursor:pointer;color:var(--dim);font-size:13px;text-transform:uppercase;letter-spacing:.8px}
-.day>button b{color:var(--ink);font-weight:600}
-.take{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:6px 0;cursor:pointer}
-.take.sel{border-color:var(--accent)}
-.take .t{font-variant-numeric:tabular-nums;font-size:18px;font-weight:600;min-width:58px}
-.take .m{flex:1;color:var(--dim);font-size:13px}
-.take .m b{color:var(--ink);font-weight:500}
-.star{all:unset;font-size:22px;padding:2px 6px;color:var(--line);cursor:pointer}
-.star.on{color:var(--accent)}
-.badge{font-size:11px;color:#fff;background:var(--live);border-radius:6px;padding:1px 6px;margin-left:6px}
-.empty{color:var(--dim);text-align:center;padding:40px 16px}
-#player{position:fixed;left:0;right:0;bottom:0;z-index:3;background:var(--panel);border-top:1px solid var(--line);padding:10px 12px calc(env(safe-area-inset-bottom) + 12px);display:none}
-body.playing #player{display:block}
-#player .in{max-width:720px;margin:0 auto}
-#roll{display:block;width:100%;height:160px;background:var(--bg);border-radius:10px;touch-action:none}
-.row{display:flex;align-items:center;gap:8px;margin-top:8px}
-#ttl{flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#clock{font-variant-numeric:tabular-nums;color:var(--dim);font-size:13px}
-input[type=range]{flex:1;accent-color:var(--accent);height:28px}
-.btn{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14px;text-align:center;color:var(--ink)}
-.btn.main{background:var(--accent);border-color:var(--accent);color:#1a1206;font-weight:650;min-width:52px}
-.btn.danger{color:var(--live)}
-a.btn{text-decoration:none}
+html,body{margin:0;background:var(--ground);color:var(--body);font:18px/1.5 var(--text);font-variant-numeric:oldstyle-nums;-webkit-text-size-adjust:100%}
+body{padding:0 0 calc(env(safe-area-inset-bottom) + 40px)}
+button{font:inherit;color:inherit}
+a{color:inherit}
+.sc{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:560;font-variant-numeric:lining-nums}
+.it{font-style:italic;color:var(--quiet)}
+
+/* masthead */
+header{max-width:760px;margin:0 auto;padding:22px 20px 0}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.top .sc{color:var(--ink)}
+.top .it{font-size:15px}
+.top a{color:var(--quiet);text-decoration:none}
+.top a:hover{color:var(--ink)}
+h1{font:400 clamp(46px,11vw,76px)/1.02 var(--display);color:var(--ink);margin:34px 0 6px;letter-spacing:-.01em}
+.lede{font-style:italic;color:var(--quiet);font-size:16px;margin:0}
+#state{display:flex;flex-wrap:wrap;gap:6px 22px;margin:22px 0 0;padding:12px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+#state span{white-space:nowrap;font-size:16px}
+#state b{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:560;color:var(--quiet);margin-right:7px}
+#state .warn{color:var(--red)}
+#state .rec{color:var(--red)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-right:7px;vertical-align:1px;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+
+/* list of days */
+main{max-width:760px;margin:0 auto;padding:6px 20px}
+.day{margin:26px 0 0;background:var(--paper);border:1px solid var(--edge);border-radius:4px;box-shadow:inset 0 0 60px var(--shade)}
+.dayhead{all:unset;box-sizing:border-box;display:flex;width:100%;align-items:baseline;gap:12px;padding:16px 22px 12px;cursor:pointer}
+.dayhead .sc{color:var(--ink)}
+.dayhead .it{font-size:15px;flex:1}
+.dayhead .n{font-style:italic;color:var(--quiet);font-size:15px}
+.dayhead:focus-visible{outline:1px solid var(--ink);outline-offset:-4px}
+.takes{list-style:none;margin:0 22px;padding:0 0 6px;border-top:1px solid var(--hair)}
+.take{display:flex;align-items:baseline;gap:16px;padding:12px 4px 10px;border-bottom:1px solid var(--faint);cursor:pointer;position:relative}
+.take:last-child{border-bottom:0}
+.take:hover .t{color:var(--red)}
+.take.sel::before{content:"";position:absolute;left:-14px;top:18px;width:6px;height:6px;border-radius:50%;background:var(--red)}
+.take .t{font:400 31px/1.05 var(--display);color:var(--ink);min-width:78px;font-variant-numeric:lining-nums tabular-nums;transition:color .15s}
+.take .m{flex:1;font-style:italic;color:var(--quiet);font-size:16px}
+.take .m em{font-style:normal;color:var(--body)}
+.take .m .sc{font-style:normal;color:var(--red)}
+.star{all:unset;cursor:pointer;font:400 22px/1 var(--display);color:var(--hair);padding:2px 4px;transition:color .15s}
+.star:hover{color:var(--ochre)}
+.star.on{color:var(--ochre)}
+.empty{text-align:center;padding:60px 16px;font-style:italic;color:var(--quiet)}
+.empty big{display:block;font:400 34px/1.2 var(--display);font-style:normal;color:var(--ink);margin-bottom:8px}
+footer{max-width:720px;margin:40px auto 0;padding:14px 0;border-top:1px solid var(--hair);display:flex;justify-content:space-between;font-size:14px;font-style:italic;color:var(--quiet)}
+footer a{text-decoration:none}
+footer a:hover{color:var(--ink)}
+
+/* player */
+#player{position:fixed;left:0;right:0;bottom:0;z-index:3;background:var(--paper);border-top:1px solid var(--hair);box-shadow:0 -10px 40px rgba(60,50,30,.10);display:none;flex-direction:column;padding:12px 0 calc(env(safe-area-inset-bottom) + 12px)}
+body.playing #player{display:flex}
+body.full #player{top:0}
+body.full{overflow:hidden}
+#player .in{width:100%;max-width:980px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;flex:1;min-height:0}
+.ptop{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.ptop .sc{color:var(--quiet)}
+#ttl{flex:1;font:400 24px/1.1 var(--display);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon{all:unset;cursor:pointer;color:var(--quiet);font:400 22px/1 var(--display);padding:2px 6px}
+.icon:hover{color:var(--ink)}
+#roll{display:block;width:100%;height:clamp(230px,46vh,480px);background:var(--ground);border:1px solid var(--edge);border-radius:3px;touch-action:none;cursor:grab}
+body.full #roll{height:auto;flex:1;min-height:200px}
+#roll.drag{cursor:grabbing}
+.seekrow{display:flex;align-items:center;gap:12px;margin-top:10px}
+#clock{font-size:15px;color:var(--quiet);font-variant-numeric:oldstyle-nums tabular-nums;white-space:nowrap}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:26px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--red);margin-top:-6px;border:0}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--red);border:0}
+.ctl{display:flex;align-items:center;gap:6px 18px;margin-top:8px;flex-wrap:wrap}
+.play{all:unset;cursor:pointer;width:46px;height:46px;border-radius:50%;background:var(--ink);color:var(--ground);display:grid;place-items:center;flex:none}
+.play:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.play svg{width:16px;height:16px;fill:currentColor}
+.txt{all:unset;cursor:pointer;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:560;color:var(--soft);padding:8px 0;border-bottom:1px solid transparent;font-variant-numeric:lining-nums}
+.txt:hover,.txt:focus-visible{color:var(--ink);border-bottom-color:var(--ink)}
+.txt.danger{color:var(--red)}
+.txt.danger:hover{border-bottom-color:var(--red)}
 .grow{flex:1}
+@media (max-width:520px){
+  header,main{padding-left:16px;padding-right:16px}
+  footer{margin-left:16px;margin-right:16px}
+  .dayhead{padding:14px 16px 10px}
+  .takes{margin:0 16px}
+  .take{gap:12px}
+  .take .t{font-size:27px;min-width:66px}
+  .take.sel::before{left:-11px}
+  .ptop .sc{display:none}
+  #roll{height:clamp(220px,40vh,420px)}
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>piano<span>log</span></h1>
-  <div class="chips" id="chips"><span class="chip">connecting…</span></div>
+  <div class="top"><span class="sc">Pianolog</span><span class="it">an always-on recorder &nbsp;·&nbsp; <a href="/setup">Wi-Fi</a></span></div>
+  <h1>What was played</h1>
+  <p class="lede">Every take from the piano, kept as it was played. Touch one to hear it again.</p>
+  <div id="state"><span class="it">Listening for the recorder…</span></div>
 </header>
 <main id="list"><div class="empty">Loading…</div></main>
+<footer><span>pianolog</span><a href="/log">the recorder's log</a></footer>
 
 <div id="player"><div class="in">
-  <canvas id="roll"></canvas>
-  <div class="row"><div id="ttl"></div><div id="clock">0:00 / 0:00</div></div>
-  <div class="row"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"></div>
-  <div class="row">
-    <button class="btn main" id="play">Play</button>
-    <button class="btn" id="speed">1×</button>
+  <div class="ptop">
+    <span class="sc">Now playing</span><span id="ttl"></span>
+    <button class="icon" id="full" aria-label="Fill the screen" title="Fill the screen">⤢</button>
+    <button class="icon" id="close" aria-label="Close player" title="Close">×</button>
+  </div>
+  <canvas id="roll" aria-label="Notes falling onto a keyboard; drag to move through the take"></canvas>
+  <div class="seekrow"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"><span id="clock">0:00 / 0:00</span></div>
+  <div class="ctl">
+    <button class="play" id="play" aria-label="Play"></button>
+    <button class="txt" id="speed" title="Playback speed">Speed 1×</button>
     <span class="grow"></span>
-    <a class="btn" id="dl" download>Download</a>
-    <button class="btn danger" id="del">Delete</button>
-    <button class="btn" id="close" aria-label="Close player">✕</button>
+    <a class="txt" id="dl" download>Download</a>
+    <button class="txt danger" id="del">Delete</button>
   </div>
 </div></div>
 
@@ -72,11 +146,14 @@ a.btn{text-decoration:none}
 "use strict";
 const $ = s => document.querySelector(s);
 const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 async function api(path, opt) {
   const r = await fetch(path, opt);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
+const ICON_PLAY = '<svg viewBox="0 0 16 16"><path d="M4 2.5v11l9.5-5.5z"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 16 16"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z"/></svg>';
 
 // ---------- status ----------
 let lastStatus = null;
@@ -85,44 +162,55 @@ async function pollStatus() {
     const s = await api("/api/status");
     if (!s.time_valid) fetch("/api/time?t=" + Math.floor(Date.now() / 1000), { method: "POST" });
     const c = [];
-    if (s.recording) c.push(`<span class="chip rec">● recording ${fmt(s.rec_s)} · ${s.rec_notes} notes</span>`);
-    if (s.usb) c.push(`<span class="chip ok">USB: ${esc(s.usb_name)}</span>`);
-    else if (s.events_din > 0) c.push(`<span class="chip ok">DIN input active</span>`);
-    else c.push(`<span class="chip warn">no piano detected</span>`);
-    c.push(s.sd ? `<span class="chip">card: ${(s.sd_free_mb / 1024).toFixed(1)} GB free</span>`
-                : `<span class="chip warn">no card: oldest takes are overwritten when full</span>`);
+    if (s.recording) c.push(`<span class="rec"><i class="dot"></i>Recording · ${fmt(s.rec_s)} · ${s.rec_notes} notes</span>`);
+    if (s.usb) c.push(`<span><b>Piano</b>${esc(s.usb_name)}</span>`);
+    else if (s.events_din > 0) c.push(`<span><b>Piano</b>MIDI cable</span>`);
+    else c.push(`<span class="warn"><b>Piano</b><i>not connected</i></span>`);
+    c.push(s.sd ? `<span><b>Card</b>${(s.sd_free_mb / 1024).toFixed(1)} GB free</span>`
+                : `<span class="warn"><b>Card</b><i>none — oldest takes give way when memory fills</i></span>`);
     if (s.flash) {
       const pct = s.flash_total_kb ? Math.round(100 * (1 - s.flash_free_kb / s.flash_total_kb)) : 0;
-      c.push(`<span class="chip${pct > 90 ? " warn" : ""}">internal memory ${pct}% used</span>`);
-    } else c.push(`<span class="chip warn">internal memory unavailable</span>`);
-    if (s.wifi === "ap") c.push(`<a class="chip warn" href="/setup">recorder's own network · set up Wi-Fi</a>`);
-    $("#chips").innerHTML = c.join("");
+      c.push(`<span${pct > 90 ? ' class="warn"' : ""}><b>Memory</b>${pct}% used</span>`);
+    } else c.push(`<span class="warn"><b>Memory</b><i>unavailable</i></span>`);
+    if (s.wifi === "ap") c.push(`<span class="warn"><b>Wi-Fi</b><a href="/setup">own network — set up home Wi-Fi</a></span>`);
+    $("#state").innerHTML = c.join("");
     const wasRec = lastStatus && lastStatus.recording;
     if (lastStatus === null || (wasRec && !s.recording) || (!wasRec && s.recording)) loadDays();
     lastStatus = s;
   } catch (e) {
-    $("#chips").innerHTML = `<span class="chip warn">recorder unreachable</span>`;
+    $("#state").innerHTML = `<span class="warn"><i>The recorder is not answering.</i></span>`;
   }
 }
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // ---------- list ----------
 const dayCache = new Map();   // day -> takes[]
 const openDays = new Set();
 let days = [], firstLoad = true;
+const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const count = n => (WORDS[n] || n) + (n === 1 ? " take" : " takes");
 
-function dayLabel(d) {
-  if (!/^\d{4}-\d\d-\d\d$/.test(d)) return "Clock not set";
+const isDate = d => /^\d{4}-\d\d-\d\d$/.test(d);
+// The example takes a new recorder starts with (main/examples.c).
+const PIECES = { "Fur-Elise": ["Für Elise", "Beethoven"], "Rondo-alla-Turca": ["Rondo alla turca", "Mozart"],
+                 "Prelude-in-C": ["Prelude in C", "Bach"] };
+const piece = f => PIECES[f.split("_")[0]];
+function dayParts(d) {
+  if (d === "examples") return ["Examples", "a few pieces to try the player"];
+  if (!isDate(d)) return ["Undated", "the clock was not set"];
   const dt = new Date(d + "T12:00:00");
-  return dt.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  return [dt.toLocaleDateString(undefined, { weekday: "long" }),
+          dt.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })];
 }
+const dayLabel = d => dayParts(d).join(", ");
 function takeTime(f) {
   const m = /^(\d\d)-(\d\d)-(\d\d)/.exec(f);
-  return m ? m[1] + ":" + m[2] : f.split(/[_.]/)[0];
+  if (m) return m[1] + ":" + m[2];
+  return piece(f) ? piece(f)[0] : f.split(/[_.]/)[0].replace(/-/g, " ");
 }
 
 async function loadDays() {
   try { days = await api("/api/days"); } catch (e) { return; }
+  days.sort((a, b) => isDate(a) !== isDate(b) ? (isDate(a) ? -1 : 1) : a < b ? 1 : -1);   // newest first, examples last
   if (firstLoad) { days.slice(0, 2).forEach(d => openDays.add(d)); firstLoad = false; }
   dayCache.clear();
   await Promise.all([...openDays].filter(d => days.includes(d)).map(loadDay));
@@ -130,28 +218,43 @@ async function loadDays() {
 }
 async function loadDay(d) {
   const t = await api("/api/list?day=" + encodeURIComponent(d));
-  t.sort((a, b) => a.f < b.f ? 1 : -1);
+  t.sort((a, b) => (a.f < b.f ? 1 : -1) * (isDate(d) ? 1 : -1));
   dayCache.set(d, t);
 }
 function render() {
   const el = $("#list");
   if (!days.length) {
-    el.innerHTML = `<div class="empty">Nothing recorded yet.<br>Play a few notes — a take appears here by itself.</div>`;
+    el.innerHTML = `<div class="empty"><big>Nothing yet.</big>Play a few notes; the take appears here by itself.</div>`;
     return;
   }
   el.innerHTML = days.map(d => {
-    const takes = dayCache.get(d);
-    const body = openDays.has(d) && takes ? takes.map(t => {
+    const takes = dayCache.get(d), [wd, date] = dayParts(d);
+    const body = openDays.has(d) && takes ? `<ol class="takes">` + takes.map(t => {
       const sel = cur && cur.day === d && cur.f === t.f ? " sel" : "";
-      const meta = t.live ? `<span class="badge">recording</span>`
-        : t.dur < 0 ? "unfinished take" : `<b>${fmt(t.dur)}</b> · ${t.notes} notes${t.where === "flash" ? ` · <span title="Not yet copied to the card">internal</span>` : ""}`;
-      return `<div class="take${sel}" data-day="${d}" data-f="${t.f}">
-        <div class="t">${takeTime(t.f)}</div><div class="m">${meta}</div>
-        ${t.dur < 0 ? "" : `<button class="star${t.star ? " on" : ""}" data-star aria-label="Star">★</button>`}</div>`;
-    }).join("") : "";
-    const n = takes ? takes.length + (takes.length === 1 ? " take" : " takes") : "show";
-    return `<section class="day"><button data-toggle="${d}"><b>${dayLabel(d)}</b><span>${n}</span></button>${body}</section>`;
+      const meta = t.live ? `<span class="sc">Recording now</span>`
+        : t.dur < 0 ? "unfinished take"
+        : `${piece(t.f) ? piece(t.f)[1] + " · " : ""}<em>${fmt(t.dur)}</em> · ${t.notes} notes${t.where === "flash" ? ` · <span title="Not yet copied to the card">in memory</span>` : ""}`;
+      return `<li class="take${sel}" data-day="${d}" data-f="${t.f}" tabindex="0">
+        <span class="t">${takeTime(t.f)}</span><span class="m">${meta}</span>
+        ${t.dur < 0 ? "" : `<button class="star${t.star ? " on" : ""}" data-star aria-label="${t.star ? "Unstar" : "Star"}">${t.star ? "★" : "☆"}</button>`}</li>`;
+    }).join("") + `</ol>` : "";
+    const n = takes ? count(takes.length) : "show";
+    return `<section class="day"><button class="dayhead" data-toggle="${d}" aria-expanded="${openDays.has(d)}">
+      <span class="sc">${wd}</span><span class="it">${date}</span><span class="n">${n}</span></button>${body}</section>`;
   }).join("");
+}
+async function onTake(row, target) {
+  const day = row.dataset.day, f = row.dataset.f;
+  if (target.closest("[data-star]")) {
+    const t = dayCache.get(day).find(x => x.f === f);
+    try {
+      const r = await api(`/api/star?day=${day}&f=${f}&on=${t.star ? 0 : 1}`, { method: "POST" });
+      if (cur && cur.day === day && cur.f === f) { cur.f = r.f; setDownload(); }
+      t.f = r.f; t.star = !t.star; render();
+    } catch (e) { alert("Could not change the star: " + e.message); }
+    return;
+  }
+  openTake(day, f);
 }
 $("#list").addEventListener("click", async ev => {
   const tog = ev.target.closest("[data-toggle]");
@@ -162,18 +265,11 @@ $("#list").addEventListener("click", async ev => {
     return render();
   }
   const row = ev.target.closest(".take");
-  if (!row) return;
-  const day = row.dataset.day, f = row.dataset.f;
-  if (ev.target.closest("[data-star]")) {
-    const t = dayCache.get(day).find(x => x.f === f);
-    try {
-      const r = await api(`/api/star?day=${day}&f=${f}&on=${t.star ? 0 : 1}`, { method: "POST" });
-      if (cur && cur.day === day && cur.f === f) { cur.f = r.f; setDownload(); }
-      t.f = r.f; t.star = !t.star; render();
-    } catch (e) { alert("Could not change the star: " + e.message); }
-    return;
-  }
-  openTake(day, f);
+  if (row) onTake(row, ev.target);
+});
+$("#list").addEventListener("keydown", ev => {
+  const row = ev.target.closest(".take");
+  if (row && ev.target === row && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); onTake(row, row); }
 });
 
 // ---------- MIDI file parsing ----------
@@ -224,6 +320,7 @@ function parseMidi(buf) {
     p = end;
   }
   notes.sort((x, y) => x.t - y.t);
+  pedal.sort((x, y) => x.t - y.t);
   // Sounding end of every note: the key release, or the next pedal lift if the pedal was down then.
   const ups = pedal.filter(e => !e.on).map(e => e.t);
   const lastLE = (arr, key, t) => { let a = 0, b = arr.length; while (a < b) { const m = (a + b) >> 1; if (key(arr[m]) <= t) a = m + 1; else b = m; } return a - 1; };
@@ -234,9 +331,17 @@ function parseMidi(buf) {
     n.e = Math.max(e, n.t + 40);
     total = Math.max(total, n.t + n.d);
   }
+  // Pedal as spans [s, e) for drawing.
+  const spans = [];
+  let down = null;
+  for (const e of pedal) {
+    if (e.on && down === null) down = e.t;
+    else if (!e.on && down !== null) { spans.push({ s: down, e: e.t }); down = null; }
+  }
+  if (down !== null) spans.push({ s: down, e: total });
   let lo = 127, hi = 0, maxLen = 0;
   for (const n of notes) { lo = Math.min(lo, n.p); hi = Math.max(hi, n.p); maxLen = Math.max(maxLen, n.d); }
-  return { notes, total, lo, hi, maxLen };
+  return { notes, total, lo, hi, maxLen, spans };
 }
 
 // ---------- synth ----------
@@ -288,24 +393,27 @@ function silence() {
 }
 
 // ---------- player ----------
-let cur = null;           // { day, f, song }
+let cur = null;           // { day, f, song, view }
 let playing = false, pos = 0, speed = 1, startAc = 0, startPos = 0, nextIdx = 0, timer = 0;
 const speeds = [1, 0.5, 0.75, 1.5];
 
 function setDownload() { $("#dl").href = `/rec/${cur.day}/${cur.f}`; $("#dl").download = `piano_${cur.day}_${cur.f}`; }
+function setPlayIcon() { $("#play").innerHTML = playing ? ICON_PAUSE : ICON_PLAY; $("#play").setAttribute("aria-label", playing ? "Pause" : "Play"); }
 async function openTake(day, f) {
   stop();
   try {
     const r = await fetch(`/rec/${day}/${f}`);
     if (!r.ok) throw new Error("download failed");
     const song = parseMidi(await r.arrayBuffer());
-    cur = { day, f, song };
+    cur = { day, f, song, view: keyRange(song) };
   } catch (e) { alert("Could not open this take: " + e.message); return; }
   pos = 0;
-  $("#ttl").textContent = dayLabel(day) + " · " + takeTime(f);
+  const dt = isDate(day) ? new Date(day + "T12:00:00") : null;
+  $("#ttl").textContent = piece(f) ? piece(f).join(" · ")
+    : (dt ? dt.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) : "Undated") + " · " + takeTime(f);
   setDownload();
   document.body.classList.add("playing");
-  render(); sizeCanvas(); draw();
+  render(); sizeCanvas(); padBody(); draw();
 }
 function now() { return playing ? startPos + (ac.currentTime - startAc) * 1000 * speed : pos; }
 function start() {
@@ -316,7 +424,7 @@ function start() {
   nextIdx = cur.song.notes.findIndex(n => n.t >= pos);
   if (nextIdx < 0) nextIdx = cur.song.notes.length;
   playing = true;
-  $("#play").textContent = "Pause";
+  setPlayIcon();
   timer = setInterval(schedule, 30);
   schedule();
   requestAnimationFrame(frame);
@@ -335,7 +443,7 @@ function stop() {
   playing = false;
   clearInterval(timer);
   silence();
-  $("#play").textContent = "Play";
+  setPlayIcon();
 }
 function frame() { draw(); if (playing) requestAnimationFrame(frame); }
 
@@ -343,7 +451,7 @@ $("#play").onclick = () => playing ? stop() : start();
 $("#speed").onclick = () => {
   const was = playing; if (was) stop();
   speed = speeds[(speeds.indexOf(speed) + 1) % speeds.length];
-  $("#speed").textContent = speed + "×";
+  $("#speed").textContent = "Speed " + speed + "×";
   if (was) start();
 };
 $("#seek").oninput = e => {
@@ -351,7 +459,13 @@ $("#seek").oninput = e => {
   pos = cur.song.total * e.target.value / 1000;
   if (was) start(); else draw();
 };
-$("#close").onclick = () => { stop(); cur = null; document.body.classList.remove("playing"); render(); };
+$("#close").onclick = () => {
+  stop(); cur = null;
+  document.body.classList.remove("playing", "full");
+  document.body.style.paddingBottom = "";
+  render();
+};
+$("#full").onclick = () => { document.body.classList.toggle("full"); sizeCanvas(); padBody(); draw(); };
 $("#del").onclick = async () => {
   if (!cur || !confirm("Delete this take from the recorder?")) return;
   try {
@@ -360,40 +474,164 @@ $("#del").onclick = async () => {
     loadDays();
   } catch (e) { alert("Could not delete: " + e.message); }
 };
+document.addEventListener("keydown", e => {
+  if (!cur || e.target.closest("input,textarea")) return;
+  if (e.key === " " && !e.target.closest("button,a,.take")) { e.preventDefault(); playing ? stop() : start(); }
+  if (e.key === "Escape") document.body.classList.contains("full") ? $("#full").onclick() : $("#close").onclick();
+});
+// Leave room under the list for the player.
+function padBody() { document.body.style.paddingBottom = cur ? $("#player").offsetHeight + 24 + "px" : ""; }
 
-// ---------- piano roll ----------
+// ---------- falling notes and keyboard ----------
+const BLACK = [1, 3, 6, 8, 10];
+const isBlack = p => BLACK.includes(p % 12);
+// Whole octaves around what was played, at least three, within the 88 keys.
+function keyRange(song) {
+  let lo = song.notes.length ? song.lo : 60, hi = song.notes.length ? song.hi : 72;
+  lo = Math.max(21, lo - (lo % 12));                 // down to a C
+  hi = Math.min(108, hi + (11 - hi % 12));           // up to a B
+  while (hi - lo < 35) { if (lo > 21) lo = Math.max(21, lo - 12); if (hi - lo < 35 && hi < 108) hi = Math.min(108, hi + 12); if (lo === 21 && hi === 108) break; }
+  const whites = [];
+  for (let p = lo; p <= hi; p++) if (!isBlack(p)) whites.push(p);
+  return { lo, hi, whites };
+}
+
 const cv = $("#roll"), g2 = cv.getContext("2d");
 function sizeCanvas() {
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
 }
-window.addEventListener("resize", () => { if (cur) { sizeCanvas(); draw(); } });
+window.addEventListener("resize", () => { if (cur) { sizeCanvas(); padBody(); draw(); } });
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let C = null;
+function colors() {
+  return C || (C = { ground: css("--ground"), ivory: css("--ivory"), ink: css("--ink"), hair: css("--hair"), faint: css("--faint"),
+    quiet: css("--quiet"), red: css("--red"), blue: css("--blue"), ochre: css("--ochre"), lane: "#f7f3eb", tint: "#ecc3b4" });
+}
+function rrect(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  g2.beginPath(); g2.moveTo(x + r, y); g2.arcTo(x + w, y, x + w, y + h, r); g2.arcTo(x + w, y + h, x, y + h, r);
+  g2.arcTo(x, y + h, x, y, r); g2.arcTo(x, y, x + w, y, r); g2.closePath(); g2.fill();
+}
+const WINDOW_MS = 3200;     // how far ahead the falling notes reach
+
 function draw() {
   if (!cur) return;
-  const { notes, total, maxLen } = cur.song, p = now();
-  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1;
-  const lo = Math.min(cur.song.lo, 48) - 2, hi = Math.max(cur.song.hi, 72) + 2;
-  const rowH = H / (hi - lo + 1), pxPerMs = W / 8000, headX = W * 0.25;
-  g2.clearRect(0, 0, W, H);
-  g2.fillStyle = "#1b1714";
-  for (let n = lo; n <= hi; n++) if ([1, 3, 6, 8, 10].includes(n % 12)) g2.fillRect(0, H - (n - lo + 1) * rowH, W, rowH);
-  const from = p - headX / pxPerMs - maxLen, to = p + (W - headX) / pxPerMs;
-  let i = 0, a = 0, b = notes.length;
-  while (a < b) { i = (a + b) >> 1; if (notes[i].t < from) a = i + 1; else b = i; }
-  for (i = a; i < notes.length && notes[i].t < to; i++) {
-    const n = notes[i], x = headX + (n.t - p) * pxPerMs, w = Math.max(2 * dpr, n.d * pxPerMs);
-    const sounding = n.t <= p && p < n.t + n.d;
-    g2.globalAlpha = sounding ? 1 : 0.35 + 0.55 * n.v / 127;
-    g2.fillStyle = sounding ? "#ffd28a" : "#e8a33d";
-    g2.fillRect(x, H - (n.p - lo + 1) * rowH + 0.5, w, Math.max(rowH - 1, 2));
+  const { notes, total, maxLen, spans } = cur.song, { lo, hi, whites } = cur.view, p = now();
+  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1, k = colors();
+  const ww = W / whites.length, bw = ww * 0.62;
+  const kh = Math.max(46 * dpr, Math.min(H * 0.26, ww * 5.2, 130 * dpr));
+  const fh = H - kh, pxPerMs = fh / WINDOW_MS;
+  const whiteIdx = new Map(whites.map((q, i) => [q, i]));
+  const keyX = q => isBlack(q) ? (whiteIdx.get(q + 1) * ww - bw / 2) : whiteIdx.get(q) * ww;
+  const keyW = q => isBlack(q) ? bw : ww;
+  const yOf = t => fh - (t - p) * pxPerMs;
+
+  // paper, lanes for the black keys, a rule at every C, faint second lines
+  g2.fillStyle = k.ground; g2.fillRect(0, 0, W, fh);
+  g2.fillStyle = k.lane;
+  for (let q = lo; q <= hi; q++) if (isBlack(q)) g2.fillRect(keyX(q), 0, bw, fh);
+  g2.fillStyle = k.faint;
+  for (let s = Math.ceil((p - 200) / 1000) * 1000; yOf(s) > 0; s += 1000) g2.fillRect(0, Math.round(yOf(s)), W, Math.max(1, dpr * 0.5));
+  g2.fillStyle = k.hair;
+  for (const q of whites) if (q % 12 === 0) g2.fillRect(Math.round(whiteIdx.get(q) * ww), 0, Math.max(1, dpr * 0.6), fh);
+
+  // pedal: a thin ochre band at the left edge while it is down
+  g2.fillStyle = k.ochre;
+  let pedalDown = false;
+  for (const s of spans) {
+    if (s.s <= p && p < s.e) pedalDown = true;
+    const y0 = yOf(s.e), y1 = yOf(s.s);
+    if (y1 < 0 || y0 > fh) continue;
+    g2.globalAlpha = 0.45;
+    g2.fillRect(0, Math.max(0, y0), 3 * dpr, Math.min(fh, y1) - Math.max(0, y0));
   }
   g2.globalAlpha = 1;
-  g2.fillStyle = "#efe8df";
-  g2.fillRect(headX, 0, Math.max(1, dpr), H);
+
+  // falling notes; the ones on the keys right now turn red
+  const from = p - maxLen, to = p + WINDOW_MS + 50;
+  let a = 0, b = notes.length;
+  while (a < b) { const m = (a + b) >> 1; if (notes[m].t < from) a = m + 1; else b = m; }
+  const down = new Map();
+  const r = Math.min(4 * dpr, ww * 0.25);
+  for (let i = a; i < notes.length && notes[i].t < to; i++) {
+    const n = notes[i];
+    if (n.p < lo || n.p > hi) continue;
+    const sounding = n.t <= p && p < n.t + n.d;
+    if (sounding) down.set(n.p, n.v);
+    const yTop = yOf(n.t + Math.max(n.d, 60)), yBot = Math.min(yOf(n.t), fh);
+    if (yBot <= 0 || yTop >= fh) continue;
+    const pad = isBlack(n.p) ? 0.5 * dpr : 1.5 * dpr, x = keyX(n.p) + pad, w = keyW(n.p) - 2 * pad;
+    g2.globalAlpha = sounding ? 1 : 0.5 + 0.5 * n.v / 127;
+    g2.fillStyle = sounding ? k.red : (isBlack(n.p) ? "#1f3a70" : k.blue);
+    rrect(x, Math.max(yTop, -r), w, yBot - Math.max(yTop, -r), r);
+  }
+  g2.globalAlpha = 1;
+
+  // keyboard
+  const ky = fh;
+  g2.fillStyle = k.ivory; g2.fillRect(0, ky, W, kh);
+  for (const q of whites) {
+    const x = whiteIdx.get(q) * ww;
+    if (down.has(q)) {
+      g2.fillStyle = k.tint; g2.fillRect(x, ky, ww, kh);
+      g2.fillStyle = k.red; g2.fillRect(x, ky + kh - 4 * dpr, ww, 4 * dpr);
+    }
+    g2.fillStyle = k.hair; g2.fillRect(Math.round(x), ky, Math.max(1, dpr * 0.6), kh);
+    if (q % 12 === 0 && ww > 13 * dpr) {
+      g2.fillStyle = down.has(q) ? k.red : k.quiet;
+      g2.font = `italic ${Math.round(Math.min(13, ww / dpr * 0.55) * dpr)}px "EB Garamond", Georgia, serif`;
+      g2.textAlign = "center";
+      g2.fillText("C" + (q / 12 - 1), x + ww / 2, ky + kh - 9 * dpr);
+    }
+  }
+  const bh = kh * 0.62;
+  for (let q = lo; q <= hi; q++) {
+    if (!isBlack(q)) continue;
+    const x = keyX(q);
+    g2.fillStyle = down.has(q) ? k.red : k.ink;
+    rrect(x, ky - 2 * dpr, bw, bh + 2 * dpr, 1.5 * dpr);
+  }
+  // the "now" line: the keyboard's felt edge
+  g2.fillStyle = k.red; g2.fillRect(0, ky - 1.5 * dpr, W, 2 * dpr);
+  g2.fillStyle = "rgba(60,50,30,.10)"; g2.fillRect(0, ky + 0.5 * dpr, W, 3 * dpr);
+
+  // "Ped." as a score would print it
+  if (pedalDown) {
+    g2.fillStyle = k.ochre; g2.textAlign = "left";
+    g2.font = `italic 600 ${Math.round(17 * dpr)}px "EB Garamond", Georgia, serif`;
+    g2.fillText("Ped.", 10 * dpr, fh - 10 * dpr);
+  }
+
   $("#clock").textContent = fmt(p / 1000) + " / " + fmt(total / 1000);
   if (document.activeElement !== $("#seek") || playing) $("#seek").value = total ? Math.round(p / total * 1000) : 0;
 }
 
+// Drag the notes to move through the take: pulling them down plays forward.
+let drag = null;
+cv.addEventListener("pointerdown", e => {
+  if (!cur) return;
+  const wasPlaying = playing; if (wasPlaying) stop();
+  drag = { y: e.clientY, pos, wasPlaying, id: e.pointerId };
+  cv.setPointerCapture(e.pointerId); cv.classList.add("drag");
+});
+cv.addEventListener("pointermove", e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const kh = cv.clientHeight * 0.26, msPerPx = WINDOW_MS / Math.max(1, cv.clientHeight - kh);
+  pos = Math.max(0, Math.min(cur.song.total, drag.pos + (e.clientY - drag.y) * msPerPx));
+  draw();
+});
+const endDrag = e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const was = drag.wasPlaying, moved = Math.abs(e.clientY - drag.y) > 4;
+  drag = null; cv.classList.remove("drag");
+  if (moved ? was : !was) start();   // a tap toggles; a drag resumes if it was playing
+};
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
+
+setPlayIcon();
 pollStatus();
 setInterval(() => { if (!document.hidden) pollStatus(); }, 3000);
 </script>

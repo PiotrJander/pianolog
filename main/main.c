@@ -39,6 +39,7 @@ static void net_task(void *arg)
 
 void app_main(void)
 {
+    logbuf_start();                             // before anything logs, so /api/log has the boot
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         nvs_flash_erase();
@@ -52,6 +53,7 @@ void app_main(void)
     recorder_start(boots);
     led_start();                                // optional status light
     recorder_repair_dir(PL_REC_DIR);
+    examples_install();                         // first boot only: a few pieces to try
 
     if (storage_mount() == ESP_OK) {
         config_load();
@@ -72,12 +74,10 @@ void app_main(void)
     xTaskCreate(net_task, "net_start", 6144, NULL, 4, NULL);
     ota_confirm_when_healthy();
 
-    // Card pulled out or inserted late: keep trying to mount it.
-    for (;;) {
-        vTaskDelay(pdMS_TO_TICKS(10000));
-        if (!storage_ready() && storage_mount() == ESP_OK) {
-            recorder_repair_dir(PL_CARD_REC);
-            archive_kick();
-        }
-    }
+    // The card is looked for only once, above, before Wi-Fi starts. The card (slot 0) and the
+    // Wi-Fi co-processor (SDIO, slot 1) share one SDMMC controller, and initialising a card
+    // reprograms the controller's shared clock divider outside the driver's transaction lock.
+    // A probe while Wi-Fi traffic is in flight corrupts the SDIO transfer and esp_hosted
+    // restarts the chip (seen as a reboot halfway through an OTA upload with no card in).
+    // A card inserted later is picked up at the next power-on.
 }
