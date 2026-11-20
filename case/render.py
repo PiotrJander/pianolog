@@ -76,7 +76,7 @@ lid = [(top, BLUE), (text, INK), (led, LED, True)]
 views = [
     ("view_front.png", lid + [(bottom, BLUE)], 24, -115, "front: USB-A for the piano cable"),
     ("view_back.png", lid + [(bottom, BLUE)], 18, 65, "back: USB-C power, microSD with finger groove"),
-    ("view_top.png", lid, 62, -100, "top: wordmark in a second colour, status light"),
+    ("view_top.png", lid, 72, -90, "top: pitched roof, wordmark and port labels, status light"),
     ("view_exploded.png", [(bottom, BLUE), (load("board.step", (0, 0, 14)), PCB), (load("led.stl", (0, 0, 40)), LED, True),
                            (load("case_top.stl", (0, 0, 40)), BLUE), (load("case_top_text.stl", (0, 0, 40.04)), INK)],
      16, -120, "exploded: bottom, board, LED, top"),

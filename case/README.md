@@ -2,11 +2,13 @@
 
 ![overview](out/overview.png)
 
-A two-part case for the Waveshare ESP32-P4-NANO: 61 × 61 × 32.7 mm, rounded corners,
-gently domed top and bottom, `maraursa` engraved 1 mm deep on top, and a holder for the
-optional 5 mm status LED in the back-left corner. Openings for USB-A (piano cable, front),
-USB-C (power) and the microSD card (back, with a finger groove). The pictures show it in a
-light blue with black lettering; any colour works.
+A two-part case for the Waveshare ESP32-P4-NANO: 61 × 61 × 34.6 mm, rounded corners, a
+shallow pitched roof (the ridge runs front to back, 2 mm high) and a gently domed bottom.
+`maraursa` is set in Pacifico along the narrow side of the roof, 1 mm deep; **IN** and
+**POWER** (Bebas Neue) sit next to the piano and power sockets. A holder for the optional 5 mm
+status LED is in the back-left corner. Openings for USB-A (piano cable, front), USB-C (power)
+and the microSD card (back, with a finger groove). The pictures show it in a light blue with
+black lettering; any colour works.
 
 **Not test-fitted yet.** The board outline, mounting holes and the side-to-side position of
 the connectors come from Waveshare's dimension drawing. Connector heights and how far they
@@ -23,6 +25,7 @@ for plug bodies, which leaves about 1 mm of slack, but measure before paying for
 | `out/case_top_text.3mf`, `.stl`, `.step` | the lettering as its own body, for printing it in a second colour (see below) |
 | `out/board.step`, `out/led.stl` | the rough board and LED models used for the clearance check |
 | `pianolog_case.py` | the parametric source; `render.py` makes the preview pictures |
+| `fonts/` | Pacifico and Bebas Neue, both under the SIL Open Font License |
 
 ```sh
 pip install cadquery trimesh
@@ -44,7 +47,7 @@ than about 0.5 mm, then rebuild.
 | `RJ45_H`, `RJ45_FACE_Y` | Ethernet socket height and overhang | 13.6 / 1.6 mm |
 | `SD_X` | microSD slot position | 6.51 mm from the edge (Waveshare's drawing) |
 | `SD_Z` | height of the microSD slot under the board | 1.9 mm |
-| `HEADER_PINS_BELOW` | how far anything sticks out under the board | measured: 2 mm |
+| `HEADER_PINS_BELOW` | how far anything sticks out under the board | measured 2 mm; 3.2 mm allowed |
 | hole diameter | the four corner holes must take an M2 screw | ~2.9 mm (edge 1 mm from the board edge) |
 
 ## Parts

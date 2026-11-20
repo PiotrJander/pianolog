@@ -44,7 +44,7 @@ ANT_X, ANT_FACE_Y = (30.9, 44.7), -0.5  # drawing: 13.80 wide; the antenna ends 
 SD_X = (6.51, 18.7)                     # drawing: slot starts 6.51 from the edge; card goes in from y=50
 SD_Z = (-1.9, 0.0)                      # MEASURE: slot height under the board
 HEADER_H = 8.6                          # pin headers above the board (if fitted)
-HEADER_PINS_BELOW = 2.0                 # measured: parts stick out at most 2 mm under the board
+HEADER_PINS_BELOW = 3.2                 # 2 mm measured; 3.2 allowed for longer solder tails
 
 # --------------------------------------------------------------------------------------------
 # Enclosure
@@ -53,13 +53,14 @@ CLEAR = 0.7                             # gap around the board edge
 FRONT_CLEAR = 0.9                       # gap in front of the furthest-protruding connector
 BACK_CLEAR = 0.9
 WALL = 2.2
-FLOOR_Z = -3.2                          # inner floor, 1.2 mm under the lowest part
+FLOOR_Z = -4.6                          # inner floor, 1.4 mm under the 3.2 mm allowance
 CEIL_Z = 22.6                           # inner ceiling: above the USB-A and jumper wires on the headers
 OUTER = 61.0                            # square footprint
 CORNER_R = 10.0                         # plan-view corner radius
 INNER_R = 4.0
 EDGE_FILLET = 3.0                       # rounding where top/bottom meet the sides
-DOME_TOP = 1.5                          # top bulges by this much in the middle
+RIDGE_X = 33.5                          # the top is a shallow pitched roof; its ridge runs front to back here
+ROOF_RISE = 2.0                         # ridge height above the top edges
 DOME_BOTTOM = 1.0
 
 # Openings, sized for the plug bodies (overmolds), not just the receptacles
@@ -75,9 +76,14 @@ POST_D = 3.4                            # thin: the pin headers start 2.45 mm fr
 FOOT_D = 10.5                           # recess for self-adhesive bumpers of 10 mm
 FOOT_RECESS = 0.6
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 WORDMARK = "maraursa"
-FONT = "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf"
-FONT_SIZE = 8.0
+FONT = os.path.join(HERE, "fonts", "Pacifico-Regular.ttf")       # SIL OFL, see fonts/
+WORDMARK_FIT = (46.0, 13.0)             # largest wordmark, along y x across, on the narrow roof side
+LABEL_FONT = os.path.join(HERE, "fonts", "BebasNeue-Regular.ttf")
+LABEL_SIZE = 5.5
+LABEL_ENGRAVE = 0.6
+LABELS = (("IN", 26.85, 0.6), ("POWER", 25.0, 46.0))  # text, centre x, centre y: next to each port
 ENGRAVE = 1.0                           # deep enough to fill with paint, or print in a second colour
 
 # Status light: a 5 mm through-hole WS2812D-F5 pushed up from inside into a sleeve. Its flange
@@ -106,7 +112,8 @@ def dome_radius(rise, half_width=OUTER / 2):
     return (half_width ** 2 + rise ** 2) / (2 * rise)
 
 
-R_TOP, R_BOT = dome_radius(DOME_TOP), dome_radius(DOME_BOTTOM)
+R_BOT = dome_radius(DOME_BOTTOM)
+X_LEFT, X_RIGHT = CX - OUTER / 2, CX + OUTER / 2
 
 
 def bottom_surface_z(x, y):
@@ -117,10 +124,9 @@ def bottom_surface_z(x, y):
 
 
 def top_surface_z(x, y):
-    """z of the domed top at (x, y), away from the edge rounding."""
-    r2 = (x - CX) ** 2 + (y - CY) ** 2
-    zc = TOP_EDGE_Z + DOME_TOP - R_TOP
-    return zc + math.sqrt(R_TOP ** 2 - r2)
+    """z of the roof at (x, y), away from the edge rounding."""
+    run = (RIDGE_X - X_LEFT) if x <= RIDGE_X else (X_RIGHT - RIDGE_X)
+    return TOP_EDGE_Z + ROOF_RISE * (1 - abs(x - RIDGE_X) / run)
 
 
 LED_FLANGE_Z = top_surface_z(*LED_POS) + LED_PROUD - LED_LEN
@@ -165,19 +171,26 @@ def stadium_y(cx, cz, w, h, y0, y1):
 def outer_body():
     half = OUTER / 2
     body = rounded_box(CX - half, CX + half, CY - half, CY + half,
-                       BOT_EDGE_Z - DOME_BOTTOM - 1, TOP_EDGE_Z + DOME_TOP + 1, CORNER_R)
+                       BOT_EDGE_Z - DOME_BOTTOM - 1, TOP_EDGE_Z + ROOF_RISE + 1, CORNER_R)
     # Spheres turned on their side, so their poles (where meshers make degenerate triangles)
     # fall far outside the case.
-    top = (cq.Workplane("XY").sphere(R_TOP).rotate((0, 0, 0), (1, 0, 0), 90)
-           .translate((CX, CY, TOP_EDGE_Z + DOME_TOP - R_TOP)))
+    # Pitched roof: a prism along y whose two faces slope down from the ridge to the top edges.
+    m = 20.0
+    sl = ROOF_RISE / (RIDGE_X - X_LEFT); sr = ROOF_RISE / (X_RIGHT - RIDGE_X)
+    ridge_z = TOP_EDGE_Z + ROOF_RISE
+    pts = [(X_LEFT - m, BOT_EDGE_Z - 20), (X_RIGHT + m, BOT_EDGE_Z - 20),
+           (X_RIGHT + m, TOP_EDGE_Z - sr * m), (RIDGE_X, ridge_z), (X_LEFT - m, TOP_EDGE_Z - sl * m)]
+    top = (cq.Workplane("XZ", origin=(0, CY + OUTER, 0)).polyline(pts).close()
+           .extrude(2 * OUTER))
     bot = (cq.Workplane("XY").sphere(R_BOT).rotate((0, 0, 0), (1, 0, 0), 90)
            .translate((CX, CY, BOT_EDGE_Z - DOME_BOTTOM + R_BOT)))
     body = body.intersect(top).intersect(bot)
-    try:
-        body = body.faces(">Z or <Z").edges().fillet(EDGE_FILLET)
-    except Exception:  # pragma: no cover - fall back to a smaller rounding if OCC refuses
-        body = body.faces(">Z or <Z").edges().fillet(EDGE_FILLET / 2)
-    return body
+    for r in (EDGE_FILLET, EDGE_FILLET * 0.75, EDGE_FILLET / 2):
+        try:
+            return body.edges("not |Z").fillet(r)      # top and bottom rims, and a soft ridge
+        except Exception:  # pragma: no cover - OCC sometimes refuses a radius
+            continue
+    raise RuntimeError("could not round the case edges")
 
 
 def cavity():
@@ -195,12 +208,30 @@ def openings():
     return usbc.union(usba).union(sd).union(groove)
 
 
+def _text(s, size, font, x, y):
+    """Text standing on the roof, rotated to read from the front edge towards the back."""
+    t = (cq.Workplane("XY").text(s, size, 20, fontPath=font, halign="center", valign="center")
+         .rotate((0, 0, 0), (0, 0, 1), 90))
+    bb = t.val().BoundingBox()
+    return t.translate((x - (bb.xmin + bb.xmax) / 2, y - (bb.ymin + bb.ymax) / 2, TOP_EDGE_Z - 6))
+
+
+def lettering(body):
+    """Wordmark on the narrow roof side plus port labels, as the engraved volume."""
+    probe = _text(WORDMARK, 10.0, FONT, 0, 0).val().BoundingBox()
+    size = 10.0 * min(WORDMARK_FIT[0] / probe.ylen, WORDMARK_FIT[1] / probe.xlen)
+    x_mid = (RIDGE_X + X_RIGHT - EDGE_FILLET) / 2 + 0.5
+    word = _text(WORDMARK, size, FONT, x_mid, CY)
+    deep = body.cut(body.translate((0, 0, -ENGRAVE)))
+    shallow = body.cut(body.translate((0, 0, -LABEL_ENGRAVE)))
+    out = word.intersect(deep)
+    for s, x, y in LABELS:
+        out = out.union(_text(s, LABEL_SIZE, LABEL_FONT, x, y).intersect(shallow))
+    return out
+
+
 def wordmark(body):
-    text = (cq.Workplane("XY").workplane(offset=TOP_EDGE_Z - 3)
-            .center(CX, CY)
-            .text(WORDMARK, FONT_SIZE, 10, fontPath=FONT, halign="center", valign="center"))
-    skin = body.cut(body.translate((0, 0, -ENGRAVE)))
-    return text.intersect(skin)
+    return lettering(body)
 
 
 def top_shell(body, holes_cut):
@@ -257,6 +288,20 @@ def board_model():
     return b
 
 
+def export_mesh(shape, stem):
+    """STL and 3MF. The tessellator leaves zero-area slivers where the ridge rounding meets the
+    rim; dropping them makes the mesh watertight, which slicers and print services check."""
+    import trimesh
+    cq.exporters.export(shape, stem + ".stl", tolerance=0.02, angularTolerance=0.1)
+    m = trimesh.load(stem + ".stl")
+    m.update_faces(m.nondegenerate_faces())
+    m.remove_unreferenced_vertices()
+    m.merge_vertices()
+    assert m.is_watertight, f"{stem}: mesh not watertight"
+    m.export(stem + ".stl")
+    m.export(stem + ".3mf")
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     body = outer_body()
@@ -268,10 +313,8 @@ def main():
     led = led_model()
 
     for name, shape in (("case_top", top), ("case_bottom", bottom), ("case_top_text", text)):
-        for ext in ("step", "stl", "3mf"):
-            cq.exporters.export(shape, os.path.join(OUT, f"{name}.{ext}"),
-                                tolerance=0.02, angularTolerance=0.1) if ext != "step" else \
-                cq.exporters.export(shape, os.path.join(OUT, f"{name}.{ext}"))
+        cq.exporters.export(shape, os.path.join(OUT, f"{name}.step"))
+        export_mesh(shape, os.path.join(OUT, name))
     cq.exporters.export(board, os.path.join(OUT, "board.step"))
     cq.exporters.export(led, os.path.join(OUT, "led.stl"), tolerance=0.02, angularTolerance=0.1)
 
