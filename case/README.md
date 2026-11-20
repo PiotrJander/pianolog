@@ -2,9 +2,11 @@
 
 ![overview](out/overview.png)
 
-A two-part case for the Waveshare ESP32-P4-NANO: 61 × 61 × 30.5 mm, rounded corners,
-gently domed top and bottom, `maraursa` engraved on top. Openings for USB-A (piano cable,
-front), USB-C (power) and the microSD card (back, with a finger groove).
+A two-part case for the Waveshare ESP32-P4-NANO: 61 × 61 × 32.7 mm, rounded corners,
+gently domed top and bottom, `maraursa` engraved 1 mm deep on top, and a holder for the
+optional 5 mm status LED in the back-left corner. Openings for USB-A (piano cable, front),
+USB-C (power) and the microSD card (back, with a finger groove). The pictures show it in a
+light blue with black lettering; any colour works.
 
 **Not test-fitted yet.** The board outline, mounting holes and the side-to-side position of
 the connectors come from Waveshare's dimension drawing. Connector heights and how far they
@@ -18,7 +20,8 @@ for plug bodies, which leaves about 1 mm of slack, but measure before paying for
 | `out/case_top.step`, `out/case_bottom.step` | for print services (exact curves), and for editing in CAD |
 | `out/case_top.3mf`, `out/case_bottom.3mf` | for home slicers (Bambu Studio, PrusaSlicer, Cura); carries units |
 | `out/case_top.stl`, `out/case_bottom.stl` | for anything else |
-| `out/board.step` | the rough board model used for the clearance check |
+| `out/case_top_text.3mf`, `.stl`, `.step` | the lettering as its own body, for printing it in a second colour (see below) |
+| `out/board.step`, `out/led.stl` | the rough board and LED models used for the clearance check |
 | `pianolog_case.py` | the parametric source; `render.py` makes the preview pictures |
 
 ```sh
@@ -35,19 +38,22 @@ than about 0.5 mm, then rebuild.
 | Parameter | What to measure | Estimate |
 |-----------|-----------------|----------|
 | `USBA_FACE_Y` | how far the USB-A socket sticks out past the front edge of the board | 2.7 mm |
-| `USBA_Z` | height of the USB-A socket above the board surface | 15.0 mm |
-| `USBC_FACE_Y` | how far the USB-C socket sticks out past the back edge | 2.1 mm |
+| `USBA_Z` | top of the USB-A socket above the board's underside | measured: 20 mm |
+| `USBC_FACE_Y` | how far the USB-C socket sticks out past the back edge | 1.1 mm (from Waveshare's drawing) |
 | `USBC_Z` | height of the USB-C socket above the board surface | 3.3 mm |
 | `RJ45_H`, `RJ45_FACE_Y` | Ethernet socket height and overhang | 13.6 / 1.6 mm |
+| `SD_X` | microSD slot position | 6.51 mm from the edge (Waveshare's drawing) |
 | `SD_Z` | height of the microSD slot under the board | 1.9 mm |
-| `HEADER_PINS_BELOW` | how far the header pins stick out under the board | 3.2 mm |
-| hole diameter | the four corner holes must take an M2 screw | ~2.2 mm |
+| `HEADER_PINS_BELOW` | how far anything sticks out under the board | measured: 2 mm |
+| hole diameter | the four corner holes must take an M2 screw | ~2.9 mm (edge 1 mm from the board edge) |
 
 ## Parts
 
 * 4 × M2 × 12 mm screws with a low head (≤ 1.5 mm high, ≤ 4 mm across), e.g. DIN 84 /
   ISO 1207 cheese head. They go in from below, through the bottom shell and the board,
   and cut their own thread in the top shell's posts.
+* Optional: one 5 mm WS2812D-F5 LED for the status light, 3 female-female jumpers and a
+  drop of glue (CA or hot glue).
 * 4 × self-adhesive rubber feet, 10 mm across, 2.5–3 mm high. They sit over the screw heads
   and keep the domed bottom from rocking.
 
@@ -63,8 +69,20 @@ than about 0.5 mm, then rebuild.
   parts open side down, with tree supports inside the top shell. Print the bottom shell
   first as a fit test.
 
+## Lettering in a second colour
+
+* **MJF or SLA** (one colour per print): fill the 1 mm engraving with acrylic paint or a
+  paint marker and wipe the surface clean with a slightly damp cloth before it dries.
+* **FDM with several filaments** (e.g. a Bambu printer with AMS): load `case_top.3mf` and
+  `case_top_text.3mf` together as one object with two parts, and give the text part the
+  second filament.
+
 ## Assembly
 
+0. Status light (optional): push the LED up into the sleeve under the top shell until its
+   rim stops against the step and the tip stands 0.8 mm proud. Put a drop of glue on the
+   rim, let it set, then bend the legs sideways and fit the jumpers (see the main README for
+   the wiring). If the hole is tight, run a 5 mm drill through it by hand first.
 1. Put the board into the bottom shell on its four standoffs, microSD slot at the groove.
 2. Lower the top shell over it; the USB-A sits in the front opening.
 3. Turn over and drive the four M2 × 12 screws until snug. Don't force them: the posts

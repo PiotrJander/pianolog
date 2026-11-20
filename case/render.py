@@ -24,19 +24,22 @@ def view_matrix(elev, azim):
 
 def render(parts, elev, azim, size=700, light=(-0.35, -0.55, 0.85)):
     R, d = view_matrix(elev, azim)
-    allv = np.vstack([m.vertices for m, _ in parts])
+    allv = np.vstack([p[0].vertices for p in parts])
     c = (allv.max(0) + allv.min(0)) / 2
     pv = (allv - c) @ R.T; span = np.abs(pv[:, :2]).max() * 1.12
     W = size * S; scale = W / (2 * span)
     img = np.full((W, W, 3), (233, 236, 238), float); zb = np.full((W, W), -np.inf)
     L = np.array(light) / np.linalg.norm(light)
-    for m, base in parts:
+    for part in parts:
+        m, base = part[0], part[1]
+        glow = len(part) > 2 and part[2]
         P = (m.vertices - c) @ R.T
         X = P[:, 0] * scale + W / 2; Y = W / 2 - P[:, 1] * scale; Z = P[:, 2]
         n = m.face_normals
         vis = n @ d > 0                                          # back-face culling
         diff = np.clip(n @ L, 0, 1); spec = np.clip(n @ ((L + d) / np.linalg.norm(L + d)), 0, 1) ** 24
         shade = (0.30 + 0.70 * diff)[:, None] * np.array(base) + (0.22 * spec)[:, None]
+        if glow: shade = np.array(base)[None, :] * (0.85 + 0.15 * diff)[:, None] + (0.35 * spec)[:, None]
         for f in np.nonzero(vis)[0]:
             i0, i1, i2 = m.faces[f]
             x = np.array([X[i0], X[i1], X[i2]]); y = np.array([Y[i0], Y[i1], Y[i2]]); z = np.array([Z[i0], Z[i1], Z[i2]])
@@ -65,14 +68,19 @@ def label(im, text):
     except Exception: f = ImageFont.load_default()
     d.text((18, 14), text, fill=(40, 44, 48), font=f); return im
 
-BLACK = (0.13, 0.13, 0.14); GREEN = (0.10, 0.34, 0.20)
+# Colours: a soft sky-blue case, black lettering, a green status light.
+BLUE = (0.56, 0.78, 0.93); INK = (0.08, 0.08, 0.10); LED = (0.45, 1.0, 0.45); PCB = (0.10, 0.11, 0.12)
 top, bottom = load("case_top.stl"), load("case_bottom.stl")
+text, led = load("case_top_text.stl", (0, 0, 0.04)), load("led.stl")
+lid = [(top, BLUE), (text, INK), (led, LED, True)]
 views = [
-    ("view_front.png", [(top, BLACK), (bottom, BLACK)], 24, -115, "front: USB-A for the piano cable"),
-    ("view_back.png", [(top, BLACK), (bottom, BLACK)], 18, 65, "back: USB-C power, microSD with finger groove"),
-    ("view_top.png", [(top, BLACK)], 62, -100, "top: engraved wordmark"),
-    ("view_exploded.png", [(bottom, BLACK), (load("board.step", (0, 0, 14)), GREEN), (load("case_top.stl", (0, 0, 36)), BLACK)], 16, -120, "exploded: bottom, board, top"),
-    ("view_bottom.png", [(top, BLACK), (bottom, BLACK)], -40, -115, "underside: screws under the rubber feet"),
+    ("view_front.png", lid + [(bottom, BLUE)], 24, -115, "front: USB-A for the piano cable"),
+    ("view_back.png", lid + [(bottom, BLUE)], 18, 65, "back: USB-C power, microSD with finger groove"),
+    ("view_top.png", lid, 62, -100, "top: wordmark in a second colour, status light"),
+    ("view_exploded.png", [(bottom, BLUE), (load("board.step", (0, 0, 14)), PCB), (load("led.stl", (0, 0, 40)), LED, True),
+                           (load("case_top.stl", (0, 0, 40)), BLUE), (load("case_top_text.stl", (0, 0, 40.04)), INK)],
+     16, -120, "exploded: bottom, board, LED, top"),
+    ("view_bottom.png", lid + [(bottom, BLUE)], -40, -115, "underside: screws under the rubber feet"),
 ]
 ims = []
 for fname, parts, el, az, title in views:

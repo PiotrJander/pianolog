@@ -78,9 +78,17 @@ the pin whether or not anything is connected, so a board without the LED behaves
 
 Recording shows red whatever the Wi-Fi or card state; an update or a fault overrides recording.
 
-Wiring, no soldering: push three female jumper wires onto the LED's legs and onto the header
-pins labelled **GPIO21** (data in, `DI`/`DIN`), **3V3** (`VDD`) and **GND**. The fourth leg (`DO`)
-stays free. Leg order differs between makers, so go by the seller's pinout, and slip a bit of
+Wiring, no soldering: push three female jumper wires onto the LED's legs and onto the left
+header (the one by the LCD connector), all three next to each other:
+
+| LED leg | Header pin | Where |
+|---------|------------|-------|
+| `DI` / `DIN` (data in) | **GPIO21**, pin 15 | outer row (board edge side), 8th pin from the USB-C end |
+| `VDD` | **3V3**, pin 17 | outer row, 9th pin, right after GPIO21 |
+| `GND` | **GND**, pin 14 | inner row, 7th pin, diagonally before GPIO21 |
+| `DO` (data out) | nothing | |
+
+The fourth leg stays free. Leg order differs between makers, so go by the seller's pinout, and slip a bit of
 heat-shrink or tape over the bare legs so they can't touch. 3.3 V supply keeps the data level
 in spec and is plenty at these brightness levels (Waveshare runs the WS2812B on its own P4
 board the same way).

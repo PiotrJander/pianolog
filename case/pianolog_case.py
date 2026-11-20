@@ -32,19 +32,19 @@ USBC_X = (20.52, 29.48)                 # drawing: 20.52 from each side
 # --------------------------------------------------------------------------------------------
 # Board: estimated from photos -- MEASURE
 # --------------------------------------------------------------------------------------------
-USBC_FACE_Y = 52.1                      # MEASURE: how far the USB-C sticks out past the back edge
+USBC_FACE_Y = 51.2                      # drawing photo: USB-C overhangs the back edge by about 1.1 mm
 USBC_Z = (PCB_T, PCB_T + 3.3)           # MEASURE: USB-C receptacle height above the board
 USBA_X = (23.4, 30.3)                   # USB-A stands upright (narrow, tall)
 USBA_FACE_Y = -2.7                      # MEASURE: how far the USB-A sticks out past the front edge
-USBA_Z = (PCB_T, PCB_T + 15.0)          # MEASURE: USB-A height above the board
+USBA_Z = (PCB_T, 20.0)                  # measured: top of the USB-A is 20 mm above the board's underside
 RJ45_X = (6.1, 22.3)
 RJ45_FACE_Y = -1.6                      # MEASURE
 RJ45_H = 13.6                           # MEASURE
-ANT_X, ANT_FACE_Y = (31.3, 45.1), -1.9  # Wi-Fi module antenna overhang -- MEASURE
-SD_X = (6.3, 18.8)                      # microSD slot under the board, card goes in from y=50
+ANT_X, ANT_FACE_Y = (30.9, 44.7), -0.5  # drawing: 13.80 wide; the antenna ends about flush with the edge
+SD_X = (6.51, 18.7)                     # drawing: slot starts 6.51 from the edge; card goes in from y=50
 SD_Z = (-1.9, 0.0)                      # MEASURE: slot height under the board
 HEADER_H = 8.6                          # pin headers above the board (if fitted)
-HEADER_PINS_BELOW = 3.2                 # solder tails below the board -- MEASURE
+HEADER_PINS_BELOW = 2.0                 # measured: parts stick out at most 2 mm under the board
 
 # --------------------------------------------------------------------------------------------
 # Enclosure
@@ -53,8 +53,8 @@ CLEAR = 0.7                             # gap around the board edge
 FRONT_CLEAR = 0.9                       # gap in front of the furthest-protruding connector
 BACK_CLEAR = 0.9
 WALL = 2.2
-FLOOR_Z = -4.6                          # inner floor (below solder tails)
-CEIL_Z = 19.0                           # inner ceiling (above USB-A and its plug opening)
+FLOOR_Z = -3.2                          # inner floor, 1.2 mm under the lowest part
+CEIL_Z = 22.6                           # inner ceiling: above the USB-A and jumper wires on the headers
 OUTER = 61.0                            # square footprint
 CORNER_R = 10.0                         # plan-view corner radius
 INNER_R = 4.0
@@ -64,7 +64,7 @@ DOME_BOTTOM = 1.0
 
 # Openings, sized for the plug bodies (overmolds), not just the receptacles
 USBC_OPEN = (13.4, 7.6)                 # width x height, stadium
-USBA_OPEN = (9.8, 17.4)                 # upright stadium
+USBA_OPEN = (9.8, 20.8)                 # upright stadium
 SD_OPEN = (15.0, 3.6)
 
 SCREW_CLEAR_D = 2.4                     # M2 through the standoffs
@@ -78,7 +78,16 @@ FOOT_RECESS = 0.6
 WORDMARK = "maraursa"
 FONT = "/usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf"
 FONT_SIZE = 8.0
-ENGRAVE = 0.6
+ENGRAVE = 1.0                           # deep enough to fill with paint, or print in a second colour
+
+# Status light: a 5 mm through-hole WS2812D-F5 pushed up from inside into a sleeve. Its flange
+# stops against a step; a drop of glue (or hot glue) on the flange keeps it there.
+LED_POS = (11.0, 42.0)                  # back-left corner, over the low LCD/CAM connectors
+LED_HOLE = 5.1                          # 5 mm body; ream with a 5 mm drill if the print is tight
+LED_FLANGE_HOLE = 6.2                   # 5.8 mm flange
+LED_LEN = 8.6                           # flange underside to tip
+LED_PROUD = 0.8                         # how far the tip stands above the top surface
+LED_SLEEVE_D = 8.6
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 
@@ -105,6 +114,37 @@ def bottom_surface_z(x, y):
     r2 = (x - CX) ** 2 + (y - CY) ** 2
     zc = BOT_EDGE_Z - DOME_BOTTOM + R_BOT          # sphere centre
     return zc - math.sqrt(R_BOT ** 2 - r2)
+
+
+def top_surface_z(x, y):
+    """z of the domed top at (x, y), away from the edge rounding."""
+    r2 = (x - CX) ** 2 + (y - CY) ** 2
+    zc = TOP_EDGE_Z + DOME_TOP - R_TOP
+    return zc + math.sqrt(R_TOP ** 2 - r2)
+
+
+LED_FLANGE_Z = top_surface_z(*LED_POS) + LED_PROUD - LED_LEN
+
+
+def led_holder(shell):
+    x, y = LED_POS
+    sleeve = (cq.Workplane("XY").workplane(offset=LED_FLANGE_Z).center(x, y)
+              .circle(LED_SLEEVE_D / 2).extrude(CEIL_Z - LED_FLANGE_Z + 0.5))
+    bore = (cq.Workplane("XY").workplane(offset=LED_FLANGE_Z).center(x, y)
+            .circle(LED_HOLE / 2).extrude(30))
+    seat = (cq.Workplane("XY").workplane(offset=LED_FLANGE_Z - 1).center(x, y)
+            .circle(LED_FLANGE_HOLE / 2).extrude(2.05))
+    return shell.union(sleeve).cut(bore).cut(seat)
+
+
+def led_model():
+    """The LED itself, for clearance checks and pictures."""
+    x, y = LED_POS
+    flange = cq.Workplane("XY").workplane(offset=LED_FLANGE_Z).center(x, y).circle(2.9).extrude(1.0)
+    body = (cq.Workplane("XY").workplane(offset=LED_FLANGE_Z).center(x, y)
+            .circle(2.5).extrude(LED_LEN - 2.5))
+    dome = cq.Workplane("XY").sphere(2.5).translate((x, y, LED_FLANGE_Z + LED_LEN - 2.5))
+    return flange.union(body).union(dome)
 
 
 def rounded_box(x0, x1, y0, y1, z0, z1, r):
@@ -172,7 +212,7 @@ def top_shell(body, holes_cut):
         pilot = (cq.Workplane("XY").workplane(offset=PCB_T).center(x, y)
                  .circle(PILOT_D / 2).extrude(10))
         shell = shell.union(post).cut(pilot)
-    return shell.cut(wordmark(body))
+    return led_holder(shell).cut(wordmark(body))
 
 
 def bottom_shell(body, holes_cut):
@@ -207,9 +247,9 @@ def board_model():
           .translate((SD_X[0], 35, SD_Z[0])),
     ]
     for x0 in (0.0, 45.0):                         # 2x13 headers, top and solder tails below
-        parts.append(cq.Workplane("XY").box(5.0, 33.0, HEADER_H, centered=False).translate((x0, 11.8, PCB_T)))
+        parts.append(cq.Workplane("XY").box(5.0, 33.0, HEADER_H, centered=False).translate((x0, 11.4, PCB_T)))
         parts.append(cq.Workplane("XY").box(5.0, 33.0, HEADER_PINS_BELOW, centered=False)
-                     .translate((x0, 11.8, -HEADER_PINS_BELOW)))
+                     .translate((x0, 11.4, -HEADER_PINS_BELOW)))
     for p in parts:
         b = b.union(p)
     for (x, y) in HOLES:
@@ -224,22 +264,28 @@ def main():
     top = top_shell(body, holes_cut)
     bottom = bottom_shell(body, holes_cut)
     board = board_model()
+    text = wordmark(body)
+    led = led_model()
 
-    for name, shape in (("case_top", top), ("case_bottom", bottom)):
+    for name, shape in (("case_top", top), ("case_bottom", bottom), ("case_top_text", text)):
         for ext in ("step", "stl", "3mf"):
             cq.exporters.export(shape, os.path.join(OUT, f"{name}.{ext}"),
                                 tolerance=0.02, angularTolerance=0.1) if ext != "step" else \
                 cq.exporters.export(shape, os.path.join(OUT, f"{name}.{ext}"))
     cq.exporters.export(board, os.path.join(OUT, "board.step"))
+    cq.exporters.export(led, os.path.join(OUT, "led.stl"), tolerance=0.02, angularTolerance=0.1)
 
     # Clearance checks against the rough board model
     for name, shape in (("top", top), ("bottom", bottom)):
         v = shape.intersect(board).val().Volume() if shape.intersect(board).vals() else 0.0
         print(f"overlap board/{name}: {v:.3f} mm3")
+    v = top.intersect(led).val().Volume() if top.intersect(led).vals() else 0.0
+    print(f"overlap led/top: {v:.3f} mm3; LED flange at z={LED_FLANGE_Z:.1f}, tip "
+          f"{LED_PROUD} mm above the top")
     bb = body.val().BoundingBox()
     print(f"outside: {bb.xlen:.1f} x {bb.ylen:.1f} x {bb.zlen:.1f} mm")
     print(f"volume: top {top.val().Volume() / 1000:.1f} cm3, bottom {bottom.val().Volume() / 1000:.1f} cm3")
-    return top, bottom, board
+    return top, bottom, board, text, led
 
 
 if __name__ == "__main__":
