@@ -236,7 +236,13 @@ def wordmark(body):
 
 def top_shell(body, holes_cut):
     upper = body.intersect(cq.Workplane("XY").box(200, 200, 100, centered=(True, True, False)))
-    shell = upper.cut(cavity()).cut(holes_cut)
+    # Carry the upright USB-A opening down through the rim as a slot: otherwise a 0.4 mm
+    # strip of wall is left across it at the split line, which breaks off.
+    ux, uz = sum(USBA_X) / 2, sum(USBA_Z) / 2
+    y0, y1 = CY - OUTER, IN_Y0 + 1
+    slot = (cq.Workplane("XY").box(USBA_OPEN[0], y1 - y0, uz + 1, centered=(True, False, False))
+            .translate((ux, y0, -1)))
+    shell = upper.cut(cavity()).cut(holes_cut).cut(slot)
     for (x, y) in HOLES:
         post = (cq.Workplane("XY").workplane(offset=PCB_T).center(x, y)
                 .circle(POST_D / 2).extrude(CEIL_Z - PCB_T + 0.5))

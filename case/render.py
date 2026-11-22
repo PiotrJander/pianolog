@@ -1,5 +1,6 @@
 """Shaded preview images of the enclosure: a tiny z-buffer renderer (numpy only, no GPU)."""
 import os
+import sys
 import numpy as np, trimesh
 from PIL import Image, ImageDraw, ImageFont
 import cadquery as cq
@@ -70,25 +71,43 @@ def label(im, text):
 
 # Colours: a soft sky-blue case, black lettering, a green status light.
 BLUE = (0.56, 0.78, 0.93); INK = (0.08, 0.08, 0.10); LED = (0.45, 1.0, 0.45); PCB = (0.10, 0.11, 0.12)
-top, bottom = load("case_top.stl"), load("case_bottom.stl")
-text, led = load("case_top_text.stl", (0, 0, 0.04)), load("led.stl")
+FDM = len(sys.argv) > 1 and sys.argv[1] == "fdm"      # python render.py fdm -> the FDM variant
+P = "fdm_" if FDM else ""
+top, bottom = load(P + "case_top.stl"), load(P + "case_bottom.stl")
+text, led = load(P + "case_top_text.stl", (0, 0, 0.04)), load(P + "led.stl")
 lid = [(top, BLUE), (text, INK), (led, LED, True)]
 views = [
     ("view_front.png", lid + [(bottom, BLUE)], 24, -115, "front: USB-A for the piano cable"),
     ("view_back.png", lid + [(bottom, BLUE)], 18, 65, "back: USB-C power, microSD with finger groove"),
-    ("view_top.png", lid, 72, -90, "top: pitched roof, wordmark and port labels, status light"),
-    ("view_exploded.png", [(bottom, BLUE), (load("board.step", (0, 0, 14)), PCB), (load("led.stl", (0, 0, 40)), LED, True),
-                           (load("case_top.stl", (0, 0, 40)), BLUE), (load("case_top_text.stl", (0, 0, 40.04)), INK)],
-     16, -120, "exploded: bottom, board, LED, top"),
-    ("view_bottom.png", lid + [(bottom, BLUE)], -40, -115, "underside: screws under the rubber feet"),
 ]
+if FDM:
+    flip = trimesh.transformations.rotation_matrix(np.pi, [1, 0, 0])
+    on_plate = top.copy(); on_plate.apply_transform(flip)
+    on_plate.apply_translation([-on_plate.bounds[0][0] + 70, 0, -on_plate.bounds[0][2]])
+    plate_b = bottom.copy(); plate_b.apply_translation([0, 0, -plate_b.bounds[0][2]])
+    views += [
+        ("view_top.png", lid, 72, -90, "top: flat roof, wordmark and port labels, status light"),
+        ("view_inside.png", [(top, BLUE), (led, LED, True)], -62, -120,
+         "inside the top shell: screw posts braced by fins"),
+        ("view_print.png", [(plate_b, BLUE), (on_plate, BLUE)], 38, -100,
+         "as printed: both parts open side up, no supports"),
+        ("view_bottom.png", lid + [(bottom, BLUE)], -40, -115, "underside: flat, chamfered, screw recesses"),
+    ]
+else:
+    views += [
+        ("view_top.png", lid, 72, -90, "top: pitched roof, wordmark and port labels, status light"),
+        ("view_exploded.png", [(bottom, BLUE), (load("board.step", (0, 0, 14)), PCB), (load("led.stl", (0, 0, 40)), LED, True),
+                               (load("case_top.stl", (0, 0, 40)), BLUE), (load("case_top_text.stl", (0, 0, 40.04)), INK)],
+         16, -120, "exploded: bottom, board, LED, top"),
+        ("view_bottom.png", lid + [(bottom, BLUE)], -40, -115, "underside: screws under the rubber feet"),
+    ]
 ims = []
 for fname, parts, el, az, title in views:
-    im = label(render(parts, el, az), title); im.save(os.path.join(OUT, fname)); ims.append(im)
+    im = label(render(parts, el, az), title); im.save(os.path.join(OUT, P + fname)); ims.append(im)
 w = ims[0].width
-sheet = Image.new("RGB", (w * 2, w * 3), (233, 236, 238))
+sheet = Image.new("RGB", (w * 2, w * ((len(ims) + 1) // 2)), (233, 236, 238))
 for k, im in enumerate(ims): sheet.paste(im, ((k % 2) * w, (k // 2) * w))
-sheet.save(os.path.join(OUT, "overview.png"))
+sheet.save(os.path.join(OUT, P + "overview.png"))
 for f in os.listdir(OUT):
     if f.startswith("_preview_"): os.remove(os.path.join(OUT, f))
 print("ok")

@@ -24,7 +24,9 @@ for plug bodies, which leaves about 1 mm of slack, but measure before paying for
 | `out/case_top.stl`, `out/case_bottom.stl` | for anything else |
 | `out/case_top_text.3mf`, `.stl`, `.step` | the lettering as its own body, for printing it in a second colour (see below) |
 | `out/board.step`, `out/led.stl` | the rough board and LED models used for the clearance check |
-| `pianolog_case.py` | the parametric source; `render.py` makes the preview pictures |
+| `out/fdm_case_*.{step,3mf,stl}` | the **FDM variant** for a home filament printer (see below) |
+| `pianolog_case.py`, `pianolog_case_fdm.py` | the parametric sources; `render.py` (or `render.py fdm`) makes the preview pictures |
+| `overhangs.py` | rough check of how much surface would need support in a given print orientation |
 | `fonts/` | Pacifico and Bebas Neue, both under the SIL Open Font License |
 
 ```sh
@@ -67,17 +69,35 @@ than about 0.5 mm, then rebuild.
   posts. Ask for vapor smoothing if you want a satin, near-smooth surface. Send the STEP files.
 * **SLA resin, black:** the smoothest and most glossy-capable surface; more brittle, so
   don't overtighten the screws.
-* **FDM at home (PETG or PLA, matte black):** cheapest. A gentle dome is the worst case for
-  FDM: it shows contour rings. Use 0.1 mm layers (variable layer height) and print both
-  parts open side down, with tree supports inside the top shell. Print the bottom shell
-  first as a fit test.
+* **FDM at home: use the FDM variant, `out/fdm_case_top.*` and `out/fdm_case_bottom.*`.**
+  The case above suits powder and resin printers; on a filament printer its pitched roof and
+  domed bottom would need about 29 cm² of support per part and show stair-step contour lines.
+  The FDM variant has the same inside, openings, screws and LED holder, reshaped to print
+  with no supports at all:
+
+  ![FDM variant](out/fdm_overview.png)
+
+  * flat roof and flat bottom, each printed **outside face down, open side up**, so both
+    show the smooth (or textured) finish of the build plate;
+  * 45° chamfers instead of fillets on the two edges that touch the plate;
+  * the lettering engraved into the face on the plate (short bridges over the letters);
+  * fins bracing each screw post to the nearest walls;
+  * a two-layer sacrificial bridge above each screw-head recess, drawn for **0.2 mm layers**
+    (the hole-bridging trick): leave "detect bridging perimeters" on and supports off;
+  * the USB-A opening runs out through the rim as a slot.
+
+  Slicer: PETG (or PLA if it never sits in sun or a hot car), 0.2 mm layers, **4 perimeters**
+  so the posts are solid, 15–20 % infill, no supports, no brim needed. A textured PEI sheet
+  gives the roof a uniform matte grain. Print the bottom shell first as a fit test.
+  `python overhangs.py --flip out/fdm_case_top.stl` reports what is left to bridge: the letter
+  floors, the two screw bridges and the 45° chamfers, all of which print without support.
 
 ## Lettering in a second colour
 
 * **MJF or SLA** (one colour per print): fill the 1 mm engraving with acrylic paint or a
   paint marker and wipe the surface clean with a slightly damp cloth before it dries.
-* **FDM with several filaments** (e.g. a Bambu printer with AMS): load `case_top.3mf` and
-  `case_top_text.3mf` together as one object with two parts, and give the text part the
+* **FDM with several filaments** (e.g. a Bambu printer with AMS): load `fdm_case_top.3mf` and
+  `fdm_case_top_text.3mf` together as one object with two parts, and give the text part the
   second filament.
 
 ## Assembly
