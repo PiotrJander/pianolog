@@ -78,7 +78,7 @@ text, led = load(P + "case_top_text.stl", (0, 0, 0.04)), load(P + "led.stl")
 lid = [(top, BLUE), (text, INK), (led, LED, True)]
 views = [
     ("view_front.png", lid + [(bottom, BLUE)], 24, -115, "front: USB-A for the piano cable"),
-    ("view_back.png", lid + [(bottom, BLUE)], 18, 65, "back: USB-C power, microSD with finger groove"),
+    ("view_back.png", lid + [(bottom, BLUE)], 18, 65, "back: USB-C power"),
 ]
 if FDM:
     flip = trimesh.transformations.rotation_matrix(np.pi, [1, 0, 0])

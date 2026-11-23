@@ -6,8 +6,9 @@ A two-part case for the Waveshare ESP32-P4-NANO: 61 × 61 × 34.6 mm, rounded co
 shallow pitched roof (the ridge runs front to back, 2 mm high) and a gently domed bottom.
 `maraursa` is set in Pacifico along the narrow side of the roof, 1 mm deep; **IN** and
 **POWER** (Bebas Neue) sit next to the piano and power sockets. A holder for the optional 5 mm
-status LED is in the back-left corner. Openings for USB-A (piano cable, front), USB-C (power)
-and the microSD card (back, with a finger groove). The pictures show it in a light blue with
+status LED is in the back-left corner. Only two openings: USB-A (piano cable, front) and USB-C
+(power, back). The microSD card stays sealed inside; takes download over Wi-Fi, and to swap
+the card you take the four screws out. The pictures show it in a light blue with
 black lettering; any colour works.
 
 **Not test-fitted yet.** The board outline, mounting holes and the side-to-side position of
@@ -106,7 +107,8 @@ than about 0.5 mm, then rebuild.
    rim stops against the step and the tip stands 0.8 mm proud. Put a drop of glue on the
    rim, let it set, then bend the legs sideways and fit the jumpers (see the main README for
    the wiring). If the hole is tight, run a 5 mm drill through it by hand first.
-1. Put the board into the bottom shell on its four standoffs, microSD slot at the groove.
+1. Put the card in the microSD slot (optional), then the board into the bottom shell on its
+   four standoffs, USB-C towards the back.
 2. Lower the top shell over it; the USB-A sits in the front opening.
 3. Turn over and drive the four M2 × 12 screws until snug. Don't force them: the posts
    in the top shell are 3.4 mm thin, because the pin headers start 2.45 mm from the holes.

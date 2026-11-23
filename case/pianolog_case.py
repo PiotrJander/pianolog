@@ -66,7 +66,6 @@ DOME_BOTTOM = 1.0
 # Openings, sized for the plug bodies (overmolds), not just the receptacles
 USBC_OPEN = (13.4, 7.6)                 # width x height, stadium
 USBA_OPEN = (9.8, 20.8)                 # upright stadium
-SD_OPEN = (15.0, 3.6)
 
 SCREW_CLEAR_D = 2.4                     # M2 through the standoffs
 SCREW_HEAD_D = 4.2                      # M2 pan/cheese head
@@ -201,11 +200,8 @@ def openings():
     far_back, far_front = CY + OUTER, CY - OUTER
     usbc = stadium_y(sum(USBC_X) / 2, sum(USBC_Z) / 2, *USBC_OPEN, IN_Y1 - 1, far_back)
     usba = stadium_y(sum(USBA_X) / 2, sum(USBA_Z) / 2, *USBA_OPEN, far_front, IN_Y0 + 1)
-    sd = stadium_y(sum(SD_X) / 2, sum(SD_Z) / 2, *SD_OPEN, IN_Y1 - 1, far_back)
-    # finger groove under the card slot, so the push-push card can be pressed in and out
-    groove = (cq.Workplane("YZ").circle(5.5).extrude(SD_OPEN[0] + 4)
-              .translate((sum(SD_X) / 2 - (SD_OPEN[0] + 4) / 2, CY + OUTER / 2 + 4.2, sum(SD_Z) / 2)))
-    return usbc.union(usba).union(sd).union(groove)
+    # No microSD opening: the card stays inside; open the case to swap it (takes download over Wi-Fi).
+    return usbc.union(usba)
 
 
 def _text(s, size, font, x, y):
