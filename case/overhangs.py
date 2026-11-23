@@ -2,8 +2,8 @@
 Rough FDM printability check: how much surface faces downward more steeply than a
 given angle (i.e. would need support), for a part in a given print orientation.
 
-    python overhangs.py out/case_top.stl            # as exported (z up)
-    python overhangs.py out/case_bottom.stl --flip  # turned upside down first
+    python overhangs.py fdm/out/bottom.stl              # as exported (z up)
+    python overhangs.py --flip fdm/out/top.stl          # turned upside down first
 
 Faces lying on the build plate are not counted. Small areas (a few mm2: letter
 bridges, tiny chamfers) print fine; large areas mean support material.

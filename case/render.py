@@ -1,17 +1,25 @@
-"""Shaded preview images of the enclosure: a tiny z-buffer renderer (numpy only, no GPU)."""
+"""Shaded preview images of one case version: a tiny z-buffer renderer (numpy only, no GPU).
+
+    python render.py fdm             # fdm/out/view_*.png and overview.png
+    python render.py pitched-roof    # pitched-roof/out/...
+"""
 import os
 import sys
 import numpy as np, trimesh
 from PIL import Image, ImageDraw, ImageFont
 import cadquery as cq
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
+HERE = os.path.dirname(os.path.abspath(__file__))
+VARIANT = sys.argv[1].strip("/") if len(sys.argv) > 1 else "fdm"
+assert VARIANT in ("fdm", "pitched-roof"), "usage: python render.py fdm|pitched-roof"
+OUT = os.path.join(HERE, VARIANT, "out")
+REFERENCE = os.path.join(HERE, "reference")
 S = 2                                    # supersampling
 
-def load(name, offset=(0, 0, 0)):
-    path = os.path.join(OUT, name)
+def load(name, offset=(0, 0, 0), folder=OUT):
+    path = os.path.join(folder, name)
     if name.endswith(".step"):
-        stl = os.path.join(OUT, "_preview_" + os.path.basename(path)[:-5] + ".stl")
+        stl = os.path.join(folder, "_preview_" + os.path.basename(path)[:-5] + ".stl")
         cq.exporters.export(cq.importers.importStep(path), stl, tolerance=0.05, angularTolerance=0.2)
         path = stl
     m = trimesh.load(path, force="mesh"); m.apply_translation(offset); return m
@@ -71,10 +79,9 @@ def label(im, text):
 
 # Colours: a soft sky-blue case, black lettering, a green status light.
 BLUE = (0.56, 0.78, 0.93); INK = (0.08, 0.08, 0.10); LED = (0.45, 1.0, 0.45); PCB = (0.10, 0.11, 0.12)
-FDM = len(sys.argv) > 1 and sys.argv[1] == "fdm"      # python render.py fdm -> the FDM variant
-P = "fdm_" if FDM else ""
-top, bottom = load(P + "case_top.stl"), load(P + "case_bottom.stl")
-text, led = load(P + "case_top_text.stl", (0, 0, 0.04)), load(P + "led.stl")
+FDM = VARIANT == "fdm"
+top, bottom = load("top.stl"), load("bottom.stl")
+text, led = load("top_text.stl", (0, 0, 0.04)), load("led.stl")
 lid = [(top, BLUE), (text, INK), (led, LED, True)]
 views = [
     ("view_front.png", lid + [(bottom, BLUE)], 24, -115, "front: USB-A for the piano cable"),
@@ -96,18 +103,19 @@ if FDM:
 else:
     views += [
         ("view_top.png", lid, 72, -90, "top: pitched roof, wordmark and port labels, status light"),
-        ("view_exploded.png", [(bottom, BLUE), (load("board.step", (0, 0, 14)), PCB), (load("led.stl", (0, 0, 40)), LED, True),
-                               (load("case_top.stl", (0, 0, 40)), BLUE), (load("case_top_text.stl", (0, 0, 40.04)), INK)],
+        ("view_exploded.png", [(bottom, BLUE), (load("board.step", (0, 0, 14), REFERENCE), PCB), (load("led.stl", (0, 0, 40)), LED, True),
+                               (load("top.stl", (0, 0, 40)), BLUE), (load("top_text.stl", (0, 0, 40.04)), INK)],
          16, -120, "exploded: bottom, board, LED, top"),
         ("view_bottom.png", lid + [(bottom, BLUE)], -40, -115, "underside: screws under the rubber feet"),
     ]
 ims = []
 for fname, parts, el, az, title in views:
-    im = label(render(parts, el, az), title); im.save(os.path.join(OUT, P + fname)); ims.append(im)
+    im = label(render(parts, el, az), title); im.save(os.path.join(OUT, fname)); ims.append(im)
 w = ims[0].width
 sheet = Image.new("RGB", (w * 2, w * ((len(ims) + 1) // 2)), (233, 236, 238))
 for k, im in enumerate(ims): sheet.paste(im, ((k % 2) * w, (k // 2) * w))
-sheet.save(os.path.join(OUT, P + "overview.png"))
-for f in os.listdir(OUT):
-    if f.startswith("_preview_"): os.remove(os.path.join(OUT, f))
+sheet.save(os.path.join(OUT, "overview.png"))
+for d in (OUT, REFERENCE):
+    for f in os.listdir(d):
+        if f.startswith("_preview_"): os.remove(os.path.join(d, f))
 print("ok")

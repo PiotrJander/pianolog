@@ -40,7 +40,7 @@ playback through the piano and a proper enclosure, buy a Jamcorder.
 | 4a | USB-A to USB-B cable | For a piano with a square **USB TO HOST** socket (most current models) | 10–15 zł |
 | 4b | USB-A to USB-C *data* cable | For a piano with a USB-C socket. Charge-only cables won't work | 5 zł |
 | 4c | Class-compliant USB-MIDI interface cable (e.g. Roland UM-ONE mk2) | For an instrument with only round 5-pin MIDI sockets | 60–180 zł |
-| 5 | Enclosure (optional): 2 printed parts, 4 × M2 × 12 low-head screws, 4 × rubber feet Ø10 mm | See [case/](case/README.md); not test-fitted yet | depends on print |
+| 5 | Enclosure (optional): 2 printed parts, 4 × M2 × 12 low-head screws, 4 × rubber feet Ø10 mm | See [case/](case/README.md): print the FDM version at home, or the pitched-roof one through a print service; not test-fitted yet | depends on print |
 | 6 | Status light (optional): one 5 mm through-hole addressable RGB LED, WS2812D-F5 (PL9823-F5 also works), diffused, plus 3 female-female jumper wires | See [Status light](#status-light). Everything works without it | 2–5 zł + jumpers |
 
 You need one of 4a/4b/4c. No soldering. The links and prices are from a Polish shop
@@ -325,7 +325,7 @@ main/www/setup.html Wi-Fi setup page
 tools/ota.sh       sends a build (or a Wi-Fi chip image) over Wi-Fi
 tools/logs.sh      follows the log over Wi-Fi
 tools/make-demo.sh rebuilds docs/demo.html from the device page and docs/demo-shim.js
-case/              parametric 3D-printable enclosure (CadQuery) with STEP/3MF/STL exports
+case/              3D-printable enclosure (CadQuery): fdm/ (main, home printer) and pitched-roof/ (print service)
 test/host_test.c   unit tests: gcc -I../main host_test.c ../main/smf.c ../main/midi_parse.c
 test/archive_test.c archiver tests (see the comment at its top for how to build)
 test/led_test.c    status light: gcc -I../main led_test.c ../main/led_pattern.c
